@@ -1,0 +1,20 @@
+[package]
+name = "reti"
+version = "0.1.0"
+authors = ["Armin Widegreen <armin.widegreen@gmail.com>"]
+
+[dependencies]
+rustc-serialize = "*"
+tempfile = "*"
+
+[dependencies.chrono]
+version = "*"
+features = ["rustc-serialize"]
+
+[dependencies.time]
+version = "*"
+features = ["rustc-serialize"]
+
+[dependencies.clap]
+version = "2"
+features = ["unstable"]
