@@ -24,6 +24,7 @@ pub struct Year {
 pub struct Day {
     pub date: NaiveDate,
     pub parts: Vec<Part>,
+    pub comment: Option<String>,
 }
 
 #[derive(RustcDecodable, RustcEncodable, PartialEq, Debug)]
@@ -79,7 +80,7 @@ impl Year {
 
 impl Day {
     fn new(day: NaiveDate) -> Day {
-        Day { date: day, parts: vec![] }
+        Day { date: day, parts: vec![], comment: None }
     }
 
     pub fn worked(&self) -> Duration {
@@ -158,9 +159,14 @@ impl Day {
     }
 
     pub fn as_legacy(&self) -> String {
-        format!("{}   {}",
+        format!("{}   {}{}",
                 self.date.format("%Y-%m-%d").to_string(),
-                self.parts.iter().map(|x| x.as_legacy()).collect::<Vec<String>>().join("  "))
+                self.parts.iter().map(|x| x.as_legacy()).collect::<Vec<String>>().join("  "),
+                match self.comment {
+                    Some(ref c) => format!(" # {}", c),
+                    None => "".to_string()
+                }
+                )
     }
 }
 

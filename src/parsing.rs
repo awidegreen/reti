@@ -85,6 +85,14 @@ pub fn parse_day_line_from_legacy(line: &str) -> DataResult<Day> {
         return Err(DataParseError::Comment);
     }
 
+    let (line, comment) = match line.find('#') {
+        Some(pos) => {
+            let comment = Some((&line[pos+1..]).trim().to_string());
+            (&line[..pos], comment)
+        },
+        None => (line, None)
+    };
+
     let elements : Vec<&str> = line.split_whitespace().collect();
 
     if elements.len() < 1 {
@@ -92,7 +100,10 @@ pub fn parse_day_line_from_legacy(line: &str) -> DataResult<Day> {
     }
 
     let date = match parse_date(elements[0]) {
-        Ok(date) => date,
+        Ok(date) => {
+            //elements.pop();
+            date
+        },
         Err(_) =>
             match parse_part_from_legacy(elements[0]) {
                 Ok(_) => UTC::today().naive_local(),
@@ -108,7 +119,7 @@ pub fn parse_day_line_from_legacy(line: &str) -> DataResult<Day> {
         }
     }
 
-    Ok(Day { date: date, parts: parts })
+    Ok(Day { date: date, parts: parts, comment: comment })
 }
 
 pub fn parse_part_from_legacy(span: &str) -> DataResult<Part> {
@@ -133,6 +144,8 @@ pub fn parse_part_from_legacy(span: &str) -> DataResult<Part> {
         },
         _ => 1.0
     };
+
+    //let comment = "";
 
     let part = Part {
         start: start,
@@ -190,6 +203,13 @@ fn test_parse_legacy_day_from_line() {
     assert_eq!(today.month(), d.date.month());
     assert_eq!(today.day(), d.date.day());
     assert_eq!(2, d.parts.len());
+
+    let d = parse_day_line_from_legacy("10:00-11:30 # foo bar # world ").unwrap();
+    assert_eq!(today.year(), d.date.year());
+    assert_eq!(today.month(), d.date.month());
+    assert_eq!(today.day(), d.date.day());
+    assert_eq!(1, d.parts.len());
+    assert_eq!(Some(String::from("foo bar # world")), d.comment);
 
     let d = parse_day_line_from_legacy("ddd 12:30-18:00 fobar");
     assert!(d.is_err());
