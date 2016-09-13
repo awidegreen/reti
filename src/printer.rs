@@ -120,7 +120,7 @@ impl<'a> Printer<'a> {
         print!("  {}", day.date);
         if self.worked {
             let w = day.worked().num_minutes() as f64/60.0;
-            print!(" worked: {:.2}h", w);
+            print!(" worked: {: >5.2}h", w);
         }
         if self.breaks {
             //let b = 0;

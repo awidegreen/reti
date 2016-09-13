@@ -83,6 +83,11 @@ impl Day {
         Day { date: day, parts: vec![], comment: None }
     }
 
+    pub fn new_today() -> Day {
+        let today = UTC::today().naive_local();
+        Day { date: today, parts: vec![], comment: None }
+    }
+
     pub fn worked(&self) -> Duration {
         let mut d = Duration::zero();
 
@@ -155,6 +160,9 @@ impl Day {
                         &other_part, self.date);
             }
         }
+        if self.comment.is_none() && other.comment.is_some() {
+            self.comment = other.comment
+        }
         len != self.parts.len()
     }
 
@@ -163,7 +171,7 @@ impl Day {
                 self.date.format("%Y-%m-%d").to_string(),
                 self.parts.iter().map(|x| x.as_legacy()).collect::<Vec<String>>().join("  "),
                 match self.comment {
-                    Some(ref c) => format!(" # {}", c),
+                    Some(ref c) => format!("   # {}", c),
                     None => "".to_string()
                 }
                 )
@@ -399,9 +407,15 @@ impl Storage {
         let m = day.date.month() as u8;
         let d = day.date.day() as u8;
 
+        if day.parts.len() == 0 {
+            println!("No parts specified!");
+            return false
+        }
+
         if let Some(year) = self.get_year_mut(y) {
             if let Some(existing_day) = year.get_day_mut(m, d) {
                 existing_day.clear_parts();
+                existing_day.comment = None;
                 return existing_day.merge_day(day)
             }
             return year.add_day(day)

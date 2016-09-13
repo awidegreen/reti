@@ -60,12 +60,12 @@ fn get_args<'a>() -> ArgMatches<'a> {
                     .subcommand(SubCommand::with_name("parse")
                                 .about("Lets you add entries based on free text, either as parameter or via stdin.")
                                 .args_from_usage(
-                                    "<data>... 'The data that will be attempt to be parsed and added to the store.'"
+                                    "<data>... 'The data that will be attempted to be parsed and added to the store.'"
                                     ))
                     )
         .subcommand(SubCommand::with_name("edit")
                     .about("Edit a specific day.").
-                    args_from_usage("[date] 'can have the format: [yyyy-][mm-]dd, \
+                    args_from_usage("[dates]... 'can have the format: [yyyy-][mm-]dd, \
                                     if year or year and month are missing, current will be assumed.'"))
         .subcommand(SubCommand::with_name("show")
                     .about("Show recorded times")
@@ -176,28 +176,32 @@ fn subcmd_import(store: &mut data::Storage, matches: &ArgMatches) {
 }
 
 fn subcmd_edit(store: &mut data::Storage, matches: &ArgMatches) -> bool {
-    let date = value_t!(matches, "date", String).unwrap_or(String::new());
+    let p_dates = values_t!(matches, "dates", String).unwrap_or(vec![]);
 
-    let s = if !date.is_empty() {
-        let date = match parsing::parse_date(&date) {
-            Ok(x) => x,
-            _ => return false,
-        };
+    let dates = p_dates.iter()
+        .filter_map(|d| parsing::parse_date(&d).ok())
+        .filter_map(|d| store.get_day(d.year() as u16, d.month() as u8, d.day() as u8))
+        .map(|d| d.as_legacy())
+        .collect::<Vec<String>>();
 
-        let day = match store.get_day(
-            date.year() as u16,
-            date.month() as u8,
-            date.day() as u8) {
-            Some(x) => x,
-            _ => {
-                println!("Unable to get date: {:?}", date);
-                return false
-            }
-        };
-        day.as_legacy()
-    } else {
-        String::from("# 2016-04-25   08:00-12:00  13:00-17:00")
-    };
+    let mut s = dates.join("\n");
+    if s.is_empty() {
+        let today = UTC::today().naive_local();
+        if let Some(day) = store.get_day(
+                today.year() as u16,
+                today.month() as u8,
+                today.day() as u8) {
+            s.push_str(&day.as_legacy())
+        } else  {
+            s.push_str("# Lines starting with '#' will be ignored\n");
+            s.push_str("# Default date is today!\n");
+            s.push_str("# Date         Parts w/o and w/ factor (0.5)  Comment\n");
+            s.push_str("# 2016-04-25   08:00-12:00  13:00-17:00-0.5   # coment\n");
+            let today = data::Day::new_today();
+            s.push_str(&today.as_legacy())
+        }
+
+    }
 
     let mut file = tempfile::NamedTempFile::new().unwrap();
     let _ = write!(file, "{}\n", &s);
@@ -232,7 +236,7 @@ fn subcmd_edit(store: &mut data::Storage, matches: &ArgMatches) -> bool {
             }
         };
 
-        store.add_day_force(day);
+         store.add_day_force(day);
     }
 
     return true

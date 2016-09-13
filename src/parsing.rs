@@ -115,7 +115,8 @@ pub fn parse_day_line_from_legacy(line: &str) -> DataResult<Day> {
     for e in &elements {
         match parse_part_from_legacy(e) {
             Ok(p) => parts.push(p),
-            Err(err) => println!("Unable to parse part: '{}' ({:?})", e, err)
+            _ => continue,
+            //Err(err) => println!("Unable to parse part: '{}' ({:?})", e, err)
         }
     }
 
