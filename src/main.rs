@@ -408,23 +408,26 @@ fn subcmd_show(store: &data::Storage, matches: &ArgMatches) {
             vec![c]
         };
 
-        let mut vals : Vec<&data::Year> = vec![];
-        for y in vals_num {
-            match store.get_year(y) {
-                Some(y) => vals.push(y),
-                None => {
-                    println!("Year {} not available!", y);
-                }
-            }
-        }
-        let p = printer::Printer::with_years(vals)
-                        .set_fee(store.get_fee())
-                        .show_days(show_days)
-                        .show_worked(worked)
-                        .show_breaks(breaks)
-                        .show_parts(parts)
-                        .show_verbose(verbose);
-        p.print();
+        println!("Printing not implemented!");
+        return;
+
+        //let mut vals : Vec<&data::Year> = vec![];
+        //for y in vals_num {
+            //match store.get_year(y) {
+                //Some(y) => vals.push(y),
+                //None => {
+                    //println!("Year {} not available!", y);
+                //}
+            //}
+        //}
+        //let p = printer::Printer::with_years(vals)
+                        //.set_fee(store.get_fee())
+                        //.show_days(show_days)
+                        //.show_worked(worked)
+                        //.show_breaks(breaks)
+                        //.show_parts(parts)
+                        //.show_verbose(verbose);
+        //p.print();
     }
 
     if let Some(ref matches) = matches.subcommand_matches("day") {

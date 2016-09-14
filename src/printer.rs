@@ -144,8 +144,9 @@ impl<'a> Printer<'a> {
             print!(" ({} parts)", day.parts.len());
             print!(" earned: {:.2}", day.earned(self.fee));
         }
-        println!("");
-
+        if let Some(ref c) = day.comment {
+             println!("  ({})", &c);
+        } else { println!(""); }
     }
 
     fn print_days(&self, days: &Vec<&'a data::Day>) {
