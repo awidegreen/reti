@@ -30,7 +30,7 @@ fn get_args<'a>() -> ArgMatches<'a> {
                            this will overwrite existing data!")
                     .args_from_usage(
                         "<storage_file> 'Which file shall be written!'
-                        <legacy_file> 'import data from the legacy file!'"))
+                        [legacy_file] 'import data from the legacy file!'"))
         .subcommand(SubCommand::with_name("import")
                     .about("Import from legacy representation. Parts with intersecting times will be disregarded.")
                     .args_from_usage("<legacy_file> 'file with legacy format!'"))
@@ -301,19 +301,22 @@ fn subcmd_add(store: &mut data::Storage, matches: &ArgMatches) -> bool {
 fn subcmd_init(matches: &ArgMatches, pretty: bool) {
     let mut store = data::Storage::new();
 
-    let leg_file = value_t!(matches, "legacy_file", String)
-        .unwrap_or_else(|e| e.exit());
-
     let storage_file = value_t!(matches, "storage_file", String)
         .unwrap_or("times.json".to_string());
 
-    if !store.import_legacy(&leg_file) {
-        println!("Unable to import data!")
+    let mut empty = true;
+    if let Ok(leg_file) = value_t!(matches, "legacy_file", String) {
+        if !store.import_legacy(&leg_file) {
+            println!("Unable to import data!");
+        } else { empty = false; }
     }
 
     if !store.save(&storage_file, pretty) {
         println!("Unable to write file: {}", &storage_file);
+        exit(-1);
     }
+
+    println!("New store has been created: {}", storage_file);
 }
 
 fn subcmd_show(store: &data::Storage, matches: &ArgMatches) {

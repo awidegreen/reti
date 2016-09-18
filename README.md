@@ -1,4 +1,4 @@
-# reti - Time tracking in Rust
+# reti - Time recording in Rust
 
 `reti` allows you do **re**cord **ti**me via the CLI by tracking periods of time 
 during a day. All data is stored in a json file (*store*). 
@@ -40,7 +40,7 @@ $ reti -f year2016.json show
 
 ### recording
 
-Each day consists of periods of time (part), for example period worked before
+Each day consists of periods of time (part), for example periods worked before
 and after lunch, where lunch is considered a break. Each period can be assigned 
 a factor if for example the period shall be counted as overtime. This factor is
 based on the file-specific base-fee which can be set via `reti set fee <val>`. 
@@ -86,10 +86,10 @@ text-file per hand is easier then writing json.
 ### edit
 
 Existing entries can be changed using the `edit` subcommand. All requested 
-entries will be query and show in the *legacy* format (per line) within a 
-temp-file.  Once saved, the entries will overwritten. If a line should be 
-disregarded, either leave it untouched, comment it out (`# ...`) or delete the
-line from the file. 
+entries will be queried and showm in the *legacy* format (per line) within a 
+temp-file.  Once saved and the <editor> is exited, the entries will be parsed
+and overwritten. If a line should be disregarded, either leave it untouched, 
+comment it out (`# ...`) or delete the line from the file. 
 
 ```sh
 # edit the current day in $EDITOR from file foo.json
@@ -110,6 +110,33 @@ a factor of that base fee, where the default factor is `1`.
 ```sh
 # get the current fee for bla.json
 $ reti -f bla.json get fee
+```
+## Getting started
+
+Create a new store file.
+
+```sh
+# init file 2016.json (empty)
+$ reti init 2016.json
+
+# alternative init a file with a legacy (e.g. under examples/test_leg_format.txt)
+$ reti init 2016..json examples/test_leg_format.txt
+
+# show the whole year
+$ reti -f 2016.json show -p -d year 2016
+
+# set some abritrary fee per hour 
+$ reti -f 2016.json set fee 250
+# show year should show some proper calculation now
+$ reti -f 2016.json show -p -d year 2016
+
+# edit a specific date, e.g. change end time and comment to 3h
+$ reti -f 2016.json edit 2016-08-27
+# check if everything was updates 
+$ reti -f 2016.json show -p -d year 2016
+
+# edit mulitple days, only September
+$ reti -f 2016.json edit 2016-09-01 2016-09-02 
 ```
 
 ## Disclaimer
