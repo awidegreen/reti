@@ -349,7 +349,17 @@ impl Storage {
                 return Some(day)
             }
         }
-        None
+       None
+    }
+
+    /// Removes a day from the store based chrono::NaiveDate
+    pub fn remove_day_nd(&mut self, date: NaiveDate) -> bool {
+        if let Some(mut year) = self.get_year_mut(date.year() as u16) {
+            let size = year.days.len();
+            year.days.retain(|x| x.date != date);
+            return size > year.days.len();
+        }
+        false
     }
 
     pub fn get_year(&self, y: u16) -> Option<&Year> {

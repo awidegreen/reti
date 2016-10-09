@@ -8,6 +8,7 @@ extern crate clap;
 mod printer;
 mod data;
 mod parsing;
+mod utils;
 
 use chrono::*;
 use clap::{App, SubCommand, ArgMatches};
@@ -41,21 +42,27 @@ fn get_args<'a>() -> ArgMatches<'a> {
                                 .args_from_usage(""))
                     )
         .subcommand(SubCommand::with_name("set")
-                    .about("Sets ttributes for the current store.")
+                    .about("Sets attributes for the current store.")
                     .subcommand(SubCommand::with_name("fee")
                                 .about("Sets the fee per hour which is the base for all parts!")
                                 .args_from_usage("<value> 'The fee value as f32.'"))
                     )
+        .subcommand(SubCommand::with_name("rm")
+                    .about("Removes given days from the current store")
+                    .args_from_usage(
+                        "-f, --force 'Enforce removal.'
+                        [dates]... 'List of days that should be removed, space separated'"
+                        ))
         .subcommand(SubCommand::with_name("add")
                     .about("Everything related to add data to the store.")
                     .subcommand(SubCommand::with_name("part")
                                 .about("Add a part of the day. A part can \
-                                       consits only of the starting point, \
+                                       consist only of the starting point, \
                                        therefore 'stop' is optional. If only the \
-                                       stop should be recored use '_' for start")
+                                       stop should be recorded use '_' for start")
                                 .args_from_usage(
                                     "<start> 'The format is: HH:MM (default: now), use _ if only stop shall be recorded!'
-                                    [stop] 'Format: HH:MM, optional hence only start will be recored'"
+                                    [stop] 'Format: HH:MM, optional hence only start will be recorded'"
                                     ))
                     .subcommand(SubCommand::with_name("parse")
                                 .about("Lets you add entries based on free text, either as parameter or via stdin.")
@@ -92,7 +99,7 @@ fn get_args<'a>() -> ArgMatches<'a> {
                     .subcommand(SubCommand::with_name("day")
                                 .args_from_usage(
                                     "-y, --year [year] 'Specify a year (default: current)'
-                                    -m, --month [month] 'Specify a month (defautl: current)'
+                                    -m, --month [month] 'Specify a month (default: current)'
                                     [days]... 'Space separated list of days to show (default: today)'"
                                     )))
         .get_matches()
@@ -141,6 +148,14 @@ fn main() {
         }
     }
 
+    if let Some(ref matches) = args.subcommand_matches("rm") {
+        if subcmd_remove(&mut store, matches) {
+            do_write = true;
+        } else {
+            println!("Removal failed, nothing will be saved!");
+        }
+    }
+
     if let Some(ref matches) = args.subcommand_matches("add") {
         if subcmd_add(&mut store, matches) {
             do_write = true;
@@ -173,6 +188,36 @@ fn subcmd_import(store: &mut data::Storage, matches: &ArgMatches) {
     if !store.import_legacy(&leg_file) {
         println!("Unable to import data!")
     }
+}
+
+fn subcmd_remove(store: &mut data::Storage, matches: &ArgMatches) -> bool {
+    let dates = values_t!(matches, "dates", String).unwrap_or(vec![]);
+
+    let force = matches.is_present("force");
+    let dates = dates.iter()
+        .filter_map(|d| parsing::parse_date(&d).ok());
+
+    let mut removed = false;
+
+    for date in dates {
+        if !force {
+            let q = format!("Really remove {} from store? [y/N] ", date);
+            match utils::yes_no(q.as_ref(), utils::YesNoAnswer::NO) {
+                utils::YesNoAnswer::NO  => {
+                    println!("Skip removal of {}.", date);
+                    continue
+                },
+                utils::YesNoAnswer::YES => (),
+            }
+        }
+
+        if store.remove_day_nd(date) {
+            removed = true;
+            println!("{} has been removed!", date);
+        } else { println!("{} doesn't exist!", date); }
+
+    }
+    removed
 }
 
 fn subcmd_edit(store: &mut data::Storage, matches: &ArgMatches) -> bool {
