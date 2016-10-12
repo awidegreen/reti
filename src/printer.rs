@@ -118,6 +118,9 @@ impl<'a> Printer<'a> {
 
     fn print_day(&self, day: &'a data::Day) {
         print!("  {}", day.date);
+        if self.verbose {
+            print!(" ({})", day.date.format("%a"));
+        }
         if self.worked {
             let w = day.worked().num_minutes() as f64/60.0;
             print!(" worked: {: >5.2}h", w);
