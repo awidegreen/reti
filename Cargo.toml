@@ -6,6 +6,7 @@ authors = ["Armin Widegreen <armin.widegreen@gmail.com>"]
 [dependencies]
 rustc-serialize = "*"
 tempfile = "*"
+rust-ini = "*"
 
 [dependencies.chrono]
 version = "*"
@@ -16,5 +17,5 @@ version = "*"
 features = ["rustc-serialize"]
 
 [dependencies.clap]
-version = "2"
+version = "~2.16.1"
 features = ["unstable"]
