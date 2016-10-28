@@ -63,8 +63,8 @@ $ reti add parse 04-02 08:00-12:00
 ### show
 
 The recorded data (per *store*) can by shown via the `show` subcommand. This 
-includes showing a day, week (*not working yet*), month and year with different 
-levels of details (see `reti show help`).
+includes showing a day, week, month and year with different levels of details 
+(see `reti show help`).
 
 Issue `reti show help` for a detailed description, some examples:
 

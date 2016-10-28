@@ -67,9 +67,7 @@ impl Year {
         for ref d in self.days.iter() {
             let m = d.date.month();
             let month = months.entry(m).or_insert_with(|| {
-                    let dt =NaiveDate::from_ymd_opt(
-                        self.year as i32, m as u32, 1).unwrap();
-                    Month::new(dt, vec![])
+                    Month::new(vec![])
                 });
             month.days.push(d);
         }
@@ -179,13 +177,20 @@ impl Day {
 }
 
 pub struct Week<'a> {
-    the_first: NaiveDate,
     pub days: Vec<&'a Day>,
 }
 
 impl<'a> Week<'a> {
-    fn new(dt: NaiveDate, days: Vec<&'a Day>) -> Month<'a> {
-        Month { the_first: dt, days: days }
+    fn new(days: Vec<&'a Day>) -> Week<'a> {
+        Week { days: days }
+    }
+
+    pub fn earned(&self, fee: f32) -> f32 {
+        let mut r = 0.0_f32;
+        for day in &self.days {
+            r = r + day.earned(fee);
+        }
+        r
     }
 
     pub fn worked(&self) -> Duration {
@@ -198,19 +203,19 @@ impl<'a> Week<'a> {
     }
 
     pub fn as_num(&self) -> String {
-        self.the_first.format("%U").to_string()
+        assert!(self.days.len() > 0);
+        self.days[0].date.format("%W").to_string()
     }
 }
 
 #[derive(Clone)]
 pub struct Month<'a> {
-    the_first: NaiveDate,
     pub days: Vec<&'a Day>,
 }
 
 impl<'a> Month<'a> {
-    fn new(dt: NaiveDate, days: Vec<&'a Day>) -> Month<'a> {
-        Month { the_first: dt, days: days }
+    fn new(days: Vec<&'a Day>) -> Month<'a> {
+        Month {  days: days }
     }
 
     pub fn worked(&self) -> Duration {
@@ -231,11 +236,13 @@ impl<'a> Month<'a> {
     }
 
     pub fn as_num(&self) -> String {
-        self.the_first.format("%m").to_string()
+        assert!(self.days.len() > 0);
+        self.days[0].date.format("%m").to_string()
     }
 
     pub fn as_name(&self) -> String {
-        self.the_first.format("%B").to_string()
+        assert!(self.days.len() > 0);
+        self.days[0].date.format("%B").to_string()
     }
 }
 
@@ -327,17 +334,25 @@ impl Storage {
         }
     }
 
+    pub fn get_week(&self, y: u16, w: u32) -> Option<Week> {
+        if let Some(year) = self.get_year(y) {
+            let days : Vec<&Day> = year.days.iter()
+                .filter(|&x| x.date.isoweekdate().1 == w)
+                .collect();
+            if days.len() > 0 {
+                return Some(Week::new(days))
+            }
+        }
+        None
+    }
+
     pub fn get_month(&self, y: u16,  m: u8) -> Option<Month> {
         if let Some(year) = self.get_year(y) {
-            let dt = match NaiveDate::from_ymd_opt(y as i32, m as u32, 1) {
-                Some(dt) => dt,
-                None => return None
-            };
             let days : Vec<&Day> = year.days.iter()
                 .filter(|&x| x.date.month() == u32::from(m))
                 .collect();
             if days.len() > 0 {
-                return Some(Month::new(dt, days))
+                return Some(Month::new(days))
             }
         }
         None

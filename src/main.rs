@@ -269,11 +269,10 @@ fn subcmd_init(matches: &ArgMatches, pretty: bool) {
     let storage_file = value_t!(matches, "storage_file", String)
         .unwrap_or("times.json".to_string());
 
-    let mut empty = true;
     if let Ok(leg_file) = value_t!(matches, "legacy_file", String) {
         if !store.import_legacy(&leg_file) {
             println!("Unable to import data!");
-        } else { empty = false; }
+        }
     }
 
     if !store.save(&storage_file, pretty) {
@@ -353,6 +352,9 @@ fn subcmd_show(store: &data::Storage, matches: &ArgMatches) {
                 }
             }
         }
+        if vals.len() == 0 {
+            return;
+        }
         let p = printer::Printer::with_months(vals)
                         .set_fee(store.get_fee())
                         .show_days(show_days)
@@ -365,37 +367,44 @@ fn subcmd_show(store: &data::Storage, matches: &ArgMatches) {
     }
 
     if let Some(ref matches) = matches.subcommand_matches("week") {
-        let vals_num : Vec<u16> = if matches.is_present("weeks") {
-            values_t!(matches, "weeks", u16)
+        let y = if matches.is_present("year") {
+            value_t!(matches, "year", u16)
                 .unwrap_or_else(|e| e.exit())
         } else {
-            let c = today.isoweekdate().1 as u16;
+            today.year() as u16
+        };
+
+        let vals_num : Vec<u32> = if matches.is_present("weeks") {
+            values_t!(matches, "weeks", u32)
+                .unwrap_or_else(|e| e.exit())
+        } else {
+            let c = today.isoweekdate().1;
             if verbose {
                 println!("Assume current week: {}", c);
             }
             vec![c]
         };
 
-        println!("Printing not implemented!");
-        return;
-
-        //let mut vals : Vec<&data::Year> = vec![];
-        //for y in vals_num {
-            //match store.get_year(y) {
-                //Some(y) => vals.push(y),
-                //None => {
-                    //println!("Year {} not available!", y);
-                //}
-            //}
-        //}
-        //let p = printer::Printer::with_years(vals)
-                        //.set_fee(store.get_fee())
-                        //.show_days(show_days)
-                        //.show_worked(worked)
-                        //.show_breaks(breaks)
-                        //.show_parts(parts)
-                        //.show_verbose(verbose);
-        //p.print();
+        let mut vals : Vec<data::Week> = vec![];
+        for x in vals_num {
+            match store.get_week(y, x) {
+                Some(x) => vals.push(x),
+                None => {
+                    println!("Week {} not available for year {}!", x, y);
+                }
+            }
+        }
+        if vals.len() == 0 {
+            return;
+        }
+        let p = printer::Printer::with_weeks(vals)
+                        .set_fee(store.get_fee())
+                        .show_days(show_days)
+                        .show_worked(worked)
+                        .show_breaks(breaks)
+                        .show_parts(parts)
+                        .show_verbose(verbose);
+        p.print();
     }
 
     if let Some(ref matches) = matches.subcommand_matches("day") {

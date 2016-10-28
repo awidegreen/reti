@@ -45,19 +45,20 @@ impl<'a> Printer<'a> {
         }
     }
 
-    //pub fn with_weeks(weeks: Vec<data::Week<'a>>) -> Printer<'a> {
-        //Printer {
-            //years: vec![],
-            //months: vec![],
-            //weeks: weeks,
-            //days: vec![],
-            //worked: false,
-            //breaks: false,
-            //verbose: false,
-            //show_days: false,
-            //parts: false,
-        //}
-    //}
+    pub fn with_weeks(weeks: Vec<data::Week<'a>>) -> Printer<'a> {
+        Printer {
+            years: vec![],
+            months: vec![],
+            weeks: weeks,
+            days: vec![],
+            worked: false,
+            breaks: false,
+            verbose: false,
+            show_days: false,
+            parts: false,
+            fee: 0.0,
+        }
+    }
 
     pub fn with_days(days: Vec<&'a data::Day>) -> Printer<'a> {
         Printer {
@@ -109,7 +110,7 @@ impl<'a> Printer<'a> {
             self.print_months(&self.months);
         }
         if self.weeks.len() > 0 {
-            //self.print_weeks(&self.weeks);
+            self.print_weeks(&self.weeks);
         }
         if self.days.len() > 0 {
             self.print_days(&self.days);
@@ -155,6 +156,36 @@ impl<'a> Printer<'a> {
     fn print_days(&self, days: &Vec<&'a data::Day>) {
         for d in days {
             self.print_day(d);
+        }
+    }
+
+    fn print_week(&self, week: &'a data::Week) {
+        println!("Week: {}", week.as_num());
+
+        if self.verbose {
+            println!("Days recorded: {}", week.days.len());
+        }
+
+        if self.show_days {
+            self.print_days(&week.days);
+        }
+
+        if self.worked {
+            let w = week.worked().num_minutes() as f64/60.0;
+            println!("total worked: {:.2}h", w);
+        }
+        if self.breaks {
+            println!("The breaks shall go here!");
+        }
+
+        if self.verbose {
+            println!("total earned: {:.2}", week.earned(self.fee));
+        }
+    }
+
+    fn print_weeks(&self, weeks: &Vec<data::Week>) {
+        for week in weeks {
+            self.print_week(week);
         }
     }
 

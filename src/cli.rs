@@ -1,4 +1,4 @@
-use clap::{App, SubCommand, ArgMatches, Arg, AppSettings};
+use clap::{App, SubCommand, Arg, AppSettings};
 
 pub fn build_cli() -> App<'static, 'static> {
     App::new("reti")
@@ -77,7 +77,8 @@ pub fn build_cli() -> App<'static, 'static> {
                                     ))
                     .subcommand(SubCommand::with_name("week")
                                 .args_from_usage(
-                                    "[weeks]... 'Space separated list of weeks to show (default: current)'"
+                                    "-y, --year [year] 'Specify a year (default: current)'
+                                    [weeks]... 'Space separated list of weeks to show (default: current)'"
                                     ))
                     .subcommand(SubCommand::with_name("day")
                                 .args_from_usage(
