@@ -173,6 +173,7 @@ impl<'a> Printer<'a> {
         if self.worked {
             let w = week.worked().num_minutes() as f64/60.0;
             println!("total worked: {:.2}h", w);
+            println!("avg worked per day: {:.2}h/day", w/week.days.len() as f64);
         }
         if self.breaks {
             println!("The breaks shall go here!");
@@ -203,6 +204,7 @@ impl<'a> Printer<'a> {
         if self.worked {
             let w = month.worked().num_minutes() as f64/60.0;
             println!("total worked: {:.2}h", w);
+            println!("avg worked per day: {:.2}h/day", w/month.days.len() as f64);
         }
         if self.breaks {
             println!("The breaks shall go here!");
