@@ -3,18 +3,15 @@ name = "reti"
 version = "0.1.0"
 authors = ["Armin Widegreen <armin.widegreen@gmail.com>"]
 
+[[bin]]
+path = "src/main.rs"
+name = "reti"
+
 [dependencies]
-rustc-serialize = "*"
 tempfile = "*"
 rust-ini = "*"
-
-[dependencies.chrono]
-version = "*"
-features = ["rustc-serialize"]
-
-[dependencies.time]
-version = "*"
-features = ["rustc-serialize"]
+reti-storage = { path = "storage" }
+chrono = "*"
 
 [dependencies.clap]
 version = "~2.16.1"

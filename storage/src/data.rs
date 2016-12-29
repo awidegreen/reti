@@ -208,6 +208,7 @@ impl<'a> Week<'a> {
     }
 }
 
+//#[derive(RustcDecodable, Clone)]
 #[derive(Clone)]
 pub struct Month<'a> {
     pub days: Vec<&'a Day>,

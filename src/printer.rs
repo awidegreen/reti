@@ -1,4 +1,4 @@
-use data;
+use reti_storage::data;
 
 pub struct Printer<'a> {
     years:  Vec<&'a data::Year>,

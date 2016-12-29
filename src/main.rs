@@ -1,13 +1,12 @@
 extern crate chrono;
-extern crate rustc_serialize;
+//extern crate rustc_serialize;
 extern crate tempfile;
+extern crate reti_storage;
 
 #[macro_use]
 extern crate clap;
 
 mod printer;
-mod data;
-mod parsing;
 mod utils;
 mod cli;
 
@@ -18,6 +17,8 @@ use std::io::BufReader;
 use std::io::prelude::*;
 use std::process::{Command, exit};
 use std::env;
+use reti_storage::data;
+use reti_storage::parsing;
 
 fn main() {
     let args = cli::build_cli().get_matches();

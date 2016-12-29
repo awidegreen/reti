@@ -1,0 +1,11 @@
+[package]
+name = "reti-storage"
+version = "0.1.0"
+authors = ["Armin Widegreen <armin.widegreen@gmail.com>"]
+
+[dependencies]
+rustc-serialize = "*"
+
+[dependencies.chrono]
+version = "*"
+features = ["rustc-serialize"]
