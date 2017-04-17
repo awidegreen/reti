@@ -6,7 +6,7 @@ use std::fs::File;
 
 use chrono::*;
 
-use parsing::*;
+use legacy_parser;
 
 #[derive(RustcDecodable, RustcEncodable, PartialEq, Debug)]
 pub struct Data {
@@ -279,7 +279,7 @@ impl Storage {
         }
     }
 
-    pub fn from_file(file: &str) -> DataResult<Storage> {
+    pub fn from_file(file: &str) -> Result<Storage, json::DecoderError> {
         let mut file = File::open(file).unwrap();
         let mut s = String::new();
         let _ = file.read_to_string(&mut s).unwrap();
@@ -313,10 +313,20 @@ impl Storage {
                     continue
                 }
             };
-            match parse_day_line_from_legacy(&line) {
-                Ok(day) => { self.add_day(day); },
-                Err(e) =>
-                    println!("Unable to parse line: '{}', Err: {:?}", line, e),
+            match legacy_parser::parse_line(&line) {
+                Ok(day) => {
+                    self.add_day(day);
+                },
+                Err(e) => {
+                    match e {
+                        legacy_parser::ParserError::IgnoreLine =>
+                            println!("Line as been ignored"),
+                        legacy_parser::ParserError::EmptyLine =>
+                            println!("Line is empty"),
+                        legacy_parser::ParserError::DayParseError =>
+                            println!("DayParseError"),
+                    }
+                }
             }
         };
 
@@ -454,14 +464,14 @@ impl Storage {
 #[test]
 fn test_day_worked() {
     // test only one part!
-    let l = String::from("05-23     10:00-11:30");
-    let d = parse_day_line_from_legacy(&l).unwrap();
+    let l = String::from("2017-05-23     10:00-11:30");
+    let d = legacy_parser::parse_line(&l).unwrap();
 
     let worked = d.worked();
     assert_eq!(worked.num_minutes(), 90);
 
-    let l = String::from("05-23     10:00-11:30 --- 13:00-18:00");
-    let d = parse_day_line_from_legacy(&l).unwrap();
+    let l = String::from("2017-05-23     10:00-11:30 13:00-18:00");
+    let d = legacy_parser::parse_line(&l).unwrap();
 
     let worked = d.worked();
     assert_eq!(worked.num_minutes(), 90 + 300);
@@ -470,14 +480,14 @@ fn test_day_worked() {
 #[test]
 fn test_day_earned() {
     let fee = 100_f32;
-    let l = String::from("05-23     10:00-12:00");
-    let d = parse_day_line_from_legacy(&l).unwrap();
+    let l = String::from("2017-05-23     10:00-12:00");
+    let d = legacy_parser::parse_line(&l).unwrap();
 
     let earned = d.earned(fee);
     assert_eq!(200_f32, earned);
 
-    let l = String::from("05-24     10:00-11:00-0.5 --- 13:00-14:00-2.0");
-    let d = parse_day_line_from_legacy(&l).unwrap();
+    let l = String::from("2017-05-24     10:00-11:00-0.5   13:00-14:00-2.0");
+    let d = legacy_parser::parse_line(&l).unwrap();
 
     let earned = d.earned(fee);
     assert_eq!(250_f32, earned);
@@ -485,49 +495,49 @@ fn test_day_earned() {
 
 #[test]
 fn test_day_does_intersect() {
-    let l = String::from("05-23     08:00-12:00");
-    let day = parse_day_line_from_legacy(&l).unwrap();
+    let l = String::from("2017-05-23     08:00-12:00");
+    let day = legacy_parser::parse_line(&l).unwrap();
 
-    let part = parse_part_from_legacy("0600-0700").unwrap();
+    let part = legacy_parser::parse_part("06:00-07:00").unwrap();
     assert!(!day.does_intersect(&part));
-    let part = parse_part_from_legacy("0600-0800").unwrap();
+    let part = legacy_parser::parse_part("06:00-08:00").unwrap();
     assert!(!day.does_intersect(&part));
-    let part = parse_part_from_legacy("0600-0900").unwrap();
+    let part = legacy_parser::parse_part("06:00-09:00").unwrap();
     assert!(day.does_intersect(&part));
-    let part = parse_part_from_legacy("0800-0900").unwrap();
+    let part = legacy_parser::parse_part("08:00-09:00").unwrap();
     assert!(day.does_intersect(&part));
-    let part = parse_part_from_legacy("0900-1100").unwrap();
+    let part = legacy_parser::parse_part("09:00-11:00").unwrap();
     assert!(day.does_intersect(&part));
-    let part = parse_part_from_legacy("0900-1200").unwrap();
+    let part = legacy_parser::parse_part("09:00-12:00").unwrap();
     assert!(day.does_intersect(&part));
-    let part = parse_part_from_legacy("1200-1400").unwrap();
+    let part = legacy_parser::parse_part("12:00-14:00").unwrap();
     assert!(!day.does_intersect(&part));
-    let part = parse_part_from_legacy("1300-1400").unwrap();
+    let part = legacy_parser::parse_part("13:00-14:00").unwrap();
     assert!(!day.does_intersect(&part));
 }
 
 #[test]
 fn test_day_merge_day() {
-    let l = String::from("05-23     08:00-12:00");
-    let mut day = parse_day_line_from_legacy(&l).unwrap();
+    let l = String::from("2017-05-23     08:00-12:00");
+    let mut day = legacy_parser::parse_line(&l).unwrap();
 
     assert_eq!(1, day.parts.len());
 
     // not the same day!
-    let l = String::from("08-05     14:00-16:00");
-    let other = parse_day_line_from_legacy(&l).unwrap();
+    let l = String::from("2017-08-05     14:00-16:00");
+    let other = legacy_parser::parse_line(&l).unwrap();
     assert!(!day.merge_day(other));
     assert_eq!(1, day.parts.len());
 
     // does intersect!
-    let l = String::from("05-23     09:00-10:00");
-    let other = parse_day_line_from_legacy(&l).unwrap();
+    let l = String::from("2017-05-23     09:00-10:00");
+    let other = legacy_parser::parse_line(&l).unwrap();
     assert!(!day.merge_day(other));
     assert_eq!(1, day.parts.len());
 
     // shall work
-    let l = String::from("05-23     14:00-15:00");
-    let other = parse_day_line_from_legacy(&l).unwrap();
+    let l = String::from("2017-05-23     14:00-15:00");
+    let other = legacy_parser::parse_line(&l).unwrap();
     assert!(day.merge_day(other));
     assert_eq!(2, day.parts.len());
 }
@@ -536,19 +546,19 @@ fn test_day_merge_day() {
 fn test_year_add_day() {
     let mut year = Year::new(2016);
 
-    let l = String::from("05-25     08:00-12:00");
-    let day = parse_day_line_from_legacy(&l).unwrap();
+    let l = String::from("2017-05-25     08:00-12:00");
+    let day = legacy_parser::parse_line(&l).unwrap();
     assert!(year.add_day(day));
     assert_eq!(1, year.days.len());
 
-    let l = String::from("05-23     08:00-12:00");
-    let day = parse_day_line_from_legacy(&l).unwrap();
+    let l = String::from("2017-05-23     08:00-12:00");
+    let day = legacy_parser::parse_line(&l).unwrap();
     assert!(year.add_day(day));
     assert_eq!(2, year.days.len());
 
     // should not work
-    let l = String::from("05-23     13:00-15:00");
-    let day = parse_day_line_from_legacy(&l).unwrap();
+    let l = String::from("2017-05-23     13:00-15:00");
+    let day = legacy_parser::parse_line(&l).unwrap();
     assert!(!year.add_day(day));
     assert_eq!(2, year.days.len());
 }
@@ -557,8 +567,8 @@ fn test_year_add_day() {
 fn test_year_get_day_mut() {
     let mut year = Year::new(2016);
 
-    let l = String::from("05-25     08:00-12:00");
-    let day = parse_day_line_from_legacy(&l).unwrap();
+    let l = String::from("2017-05-25     08:00-12:00");
+    let day = legacy_parser::parse_line(&l).unwrap();
     year.add_day(day);
 
     assert!(year.get_day_mut(5, 1).is_none());

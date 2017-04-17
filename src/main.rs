@@ -18,7 +18,7 @@ use std::io::prelude::*;
 use std::process::{Command, exit};
 use std::env;
 use reti_storage::data;
-use reti_storage::parsing;
+use reti_storage::legacy_parser;
 
 fn main() {
     let args = cli::build_cli().get_matches();
@@ -116,7 +116,7 @@ fn subcmd_remove(store: &mut data::Storage, matches: &ArgMatches) -> bool {
 
     let force = matches.is_present("force");
     let dates = dates.iter()
-        .filter_map(|d| parsing::parse_date(&d).ok());
+        .filter_map(|d| legacy_parser::parse_date(&d));
 
     let mut removed = false;
 
@@ -145,7 +145,7 @@ fn subcmd_edit(store: &mut data::Storage, matches: &ArgMatches) -> bool {
     let p_dates = values_t!(matches, "dates", String).unwrap_or(vec![]);
 
     let dates = p_dates.iter()
-        .filter_map(|d| parsing::parse_date(&d).ok())
+        .filter_map(|d| legacy_parser::parse_date(&d))
         .filter_map(|d| store.get_day(d.year() as u16, d.month() as u8, d.day() as u8))
         .map(|d| d.as_legacy())
         .collect::<Vec<String>>();
@@ -194,7 +194,7 @@ fn subcmd_edit(store: &mut data::Storage, matches: &ArgMatches) -> bool {
             continue
         }
 
-        let day = match parsing::parse_day_line_from_legacy(&line) {
+        let day = match legacy_parser::parse_line(&line) {
             Ok(day) => day,
             Err(e) => {
                 println!("ignore {}: '{}' {:?}", i, line, e);
@@ -226,8 +226,8 @@ fn subcmd_set(store: &mut data::Storage, matches: &ArgMatches) -> bool {
 fn subcmd_add(store: &mut data::Storage, matches: &ArgMatches) -> bool {
     if let Some(ref matches) = matches.subcommand_matches("part") {
         let start = value_t!(matches, "start", String).unwrap_or_else(|e| e.exit());
-        let start = parsing::parse_time_from_str(&start);
-        if start.is_err() {
+        let start = legacy_parser::parse_time(&start);
+        if start.is_none() {
             println!("Unable to parse start as time: format HH:MM or HHMM");
             return false;
         }
@@ -235,12 +235,7 @@ fn subcmd_add(store: &mut data::Storage, matches: &ArgMatches) -> bool {
         let mut part = data::Part { start: start, stop: None, factor: None};
 
         if let Ok(stop) = value_t!(matches, "stop",  String) {
-            if let Ok(stop) = parsing::parse_time_from_str(&stop) {
-                part.stop = Some(stop);
-            } else {
-                println!("Unable to parse stop as time: format HH:MM or HHMM");
-                return false;
-            }
+            part.stop =legacy_parser::parse_time(&stop); // { Some(stop);
         }
 
         let date = UTC::today().naive_local();
@@ -250,7 +245,7 @@ fn subcmd_add(store: &mut data::Storage, matches: &ArgMatches) -> bool {
     if let Some(ref matches) = matches.subcommand_matches("parse") {
         let data = values_t!(matches, "data", String).unwrap_or_else(|e| e.exit());
 
-        match parsing::parse_day_line_from_legacy(&data.join(" ")) {
+        match legacy_parser::parse_line(&data.join(" ")) {
             Ok(day) => {
                 return store.add_day(day)
             },
@@ -315,14 +310,14 @@ fn subcmd_show(store: &data::Storage, matches: &ArgMatches) {
                 }
             }
         }
-        let p = printer::Printer::with_years(vals)
-                        .set_fee(store.get_fee())
-                        .show_days(show_days)
-                        .show_worked(worked)
-                        .show_breaks(breaks)
-                        .show_parts(parts)
-                        .show_verbose(verbose);
-        p.print();
+
+        printer::Printer::with_years(vals)
+            .set_fee(store.get_fee())
+            .show_days(show_days)
+            .show_worked(worked)
+            .show_breaks(breaks)
+            .show_parts(parts)
+            .show_verbose(verbose).print();
     }
 
     if let Some(ref matches) = matches.subcommand_matches("month") {

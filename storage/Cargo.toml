@@ -5,6 +5,7 @@ authors = ["Armin Widegreen <armin.widegreen@gmail.com>"]
 
 [dependencies]
 rustc-serialize = "*"
+nom = "2.*"
 
 [dependencies.chrono]
 version = "*"
