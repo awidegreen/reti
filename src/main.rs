@@ -152,7 +152,7 @@ fn subcmd_edit(store: &mut data::Storage, matches: &ArgMatches) -> bool {
 
     let mut s = dates.join("\n");
     if s.is_empty() {
-        let today = UTC::today().naive_local();
+        let today = Utc::today().naive_local();
         if let Some(day) = store.get_day(
                 today.year() as u16,
                 today.month() as u8,
@@ -238,7 +238,7 @@ fn subcmd_add(store: &mut data::Storage, matches: &ArgMatches) -> bool {
             part.stop =legacy_parser::parse_time(&stop); // { Some(stop);
         }
 
-        let date = UTC::today().naive_local();
+        let date = Utc::today().naive_local();
         return store.add_part(date, part)
     }
 
@@ -285,7 +285,7 @@ fn subcmd_show(store: &data::Storage, matches: &ArgMatches) {
     let breaks     = matches.is_present("breaks");
     let verbose    = matches.is_present("verbose");
     let parts      = matches.is_present("parts");
-    let today      = chrono::UTC::today();
+    let today      = chrono::Utc::today();
 
     if !breaks { worked = true; }
 
@@ -374,7 +374,7 @@ fn subcmd_show(store: &data::Storage, matches: &ArgMatches) {
             values_t!(matches, "weeks", u32)
                 .unwrap_or_else(|e| e.exit())
         } else {
-            let c = today.isoweekdate().1;
+            let c = today.iso_week().week();
             if verbose {
                 println!("Assume current week: {}", c);
             }

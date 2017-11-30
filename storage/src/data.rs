@@ -82,7 +82,7 @@ impl Day {
     }
 
     pub fn new_today() -> Day {
-        let today = UTC::today().naive_local();
+        let today = Utc::today().naive_local();
         Day { date: today, parts: vec![], comment: None }
     }
 
@@ -261,7 +261,8 @@ impl Part {
 
     fn worked(&self) -> Option<Duration> {
         if !self.stop.is_some() { return None }
-        Some(self.stop.unwrap() - self.start)
+
+        Some(self.stop.unwrap().signed_duration_since(self.start))
     }
 }
 
@@ -348,7 +349,7 @@ impl Storage {
     pub fn get_week(&self, y: u16, w: u32) -> Option<Week> {
         if let Some(year) = self.get_year(y) {
             let days : Vec<&Day> = year.days.iter()
-                .filter(|&x| x.date.isoweekdate().1 == w)
+                .filter(|&x| x.date.iso_week().week() == w)
                 .collect();
             if days.len() > 0 {
                 return Some(Week::new(days))
