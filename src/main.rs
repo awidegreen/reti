@@ -3,8 +3,13 @@ extern crate chrono;
 extern crate tempfile;
 extern crate reti_storage;
 
+extern crate config;
+extern crate xdg;
+
 #[macro_use]
 extern crate clap;
+
+extern crate failure;
 
 mod printer;
 mod utils;
@@ -19,6 +24,18 @@ use std::process::{Command, exit};
 use std::env;
 use reti_storage::data;
 use reti_storage::legacy_parser;
+use failure::Error;
+
+
+fn get_settings() -> Result<config::Config, Error> {
+    let xdg_dirs = xdg::BaseDirectories::with_prefix("reti")?;
+    let config_path = xdg_dirs.find_config_file("reti.toml")
+        .expect("Unable to open reti.toml");
+
+    let mut settings = config::Config::default();
+    settings.merge(config::File::from(config_path))?;
+    Ok(settings)
+}
 
 fn main() {
     let args = cli::build_cli().get_matches();
@@ -29,14 +46,26 @@ fn main() {
         exit(0)
     }
 
-    let pretty_json = args.is_present("save-pretty");
+    let mut pretty_json = args.is_present("save-pretty");
 
     if let Some(ref matches) = args.subcommand_matches("init") {
         subcmd_init(matches, pretty_json);
         return;
     }
 
-    let storage_file = value_t!(args, "file", String).unwrap_or("times.json".to_string());
+    let mut storage_file = String::new();
+    if let Ok(settings) = get_settings() {
+        if let Ok(f) = settings.get_str("storage-file") {
+            storage_file = f;
+        }
+        if let Ok(p) = settings.get_bool("save-pretty") {
+            pretty_json = p;
+        }
+    }
+
+    if let Ok(f) = value_t!(args, "file", String) {
+        storage_file = f;
+    }
     println!("Use storage_file: {}", storage_file);
 
     let mut store = match data::Storage::from_file(&storage_file) {
