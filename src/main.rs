@@ -1,7 +1,7 @@
 extern crate chrono;
 //extern crate rustc_serialize;
-extern crate tempfile;
 extern crate reti_storage;
+extern crate tempfile;
 
 extern crate config;
 extern crate xdg;
@@ -9,28 +9,31 @@ extern crate xdg;
 #[macro_use]
 extern crate clap;
 
+#[macro_use]
 extern crate failure;
 
+mod cli;
 mod printer;
 mod utils;
-mod cli;
 
 use chrono::*;
 use clap::{ArgMatches, Shell};
-use std::io;
-use std::io::BufReader;
-use std::io::prelude::*;
-use std::process::{Command, exit};
-use std::env;
+use failure::Error;
 use reti_storage::data;
 use reti_storage::legacy_parser;
-use failure::Error;
-
+use std::env;
+use std::io;
+use std::io::prelude::*;
+use std::io::BufReader;
+use std::process::{exit, Command};
 
 fn get_settings() -> Result<config::Config, Error> {
     let xdg_dirs = xdg::BaseDirectories::with_prefix("reti")?;
-    let config_path = xdg_dirs.find_config_file("reti.toml")
-        .expect("Unable to open reti.toml");
+    let config_path = match xdg_dirs.find_config_file("reti.toml") {
+        Some(x) => x,
+        None => return Err(format_err!("Unable to open reti.toml")),
+    };
+    //.expect("Unable to open reti.toml")?;
 
     let mut settings = config::Config::default();
     settings.merge(config::File::from(config_path))?;
@@ -42,7 +45,11 @@ fn main() {
 
     if let Some(ref matches) = args.subcommand_matches("completions") {
         let shell = matches.value_of("SHELL").unwrap();
-        cli::build_cli().gen_completions_to("reti", shell.parse::<Shell>().unwrap(), &mut io::stdout());
+        cli::build_cli().gen_completions_to(
+            "reti",
+            shell.parse::<Shell>().unwrap(),
+            &mut io::stdout(),
+        );
         exit(0)
     }
 
@@ -122,18 +129,15 @@ fn main() {
         }
     }
 
-
     if do_write {
         if !store.save(&storage_file, pretty_json) {
             println!("Unable to write file: {}", &storage_file);
         }
     }
-
 }
 
 fn subcmd_import(store: &mut data::Storage, matches: &ArgMatches) {
-    let leg_file = value_t!(matches, "legacy_file", String)
-        .unwrap_or_else(|e| e.exit());
+    let leg_file = value_t!(matches, "legacy_file", String).unwrap_or_else(|e| e.exit());
 
     if !store.import_legacy(&leg_file) {
         println!("Unable to import data!")
@@ -144,8 +148,7 @@ fn subcmd_remove(store: &mut data::Storage, matches: &ArgMatches) -> bool {
     let dates = values_t!(matches, "dates", String).unwrap_or(vec![]);
 
     let force = matches.is_present("force");
-    let dates = dates.iter()
-        .filter_map(|d| legacy_parser::parse_date(&d));
+    let dates = dates.iter().filter_map(|d| legacy_parser::parse_date(&d));
 
     let mut removed = false;
 
@@ -153,10 +156,10 @@ fn subcmd_remove(store: &mut data::Storage, matches: &ArgMatches) -> bool {
         if !force {
             let q = format!("Really remove {} from store? [y/N] ", date);
             match utils::yes_no(q.as_ref(), utils::YesNoAnswer::NO) {
-                utils::YesNoAnswer::NO  => {
+                utils::YesNoAnswer::NO => {
                     println!("Skip removal of {}.", date);
-                    continue
-                },
+                    continue;
+                }
                 utils::YesNoAnswer::YES => (),
             }
         }
@@ -164,8 +167,9 @@ fn subcmd_remove(store: &mut data::Storage, matches: &ArgMatches) -> bool {
         if store.remove_day_nd(date) {
             removed = true;
             println!("{} has been removed!", date);
-        } else { println!("{} doesn't exist!", date); }
-
+        } else {
+            println!("{} doesn't exist!", date);
+        }
     }
     removed
 }
@@ -173,7 +177,8 @@ fn subcmd_remove(store: &mut data::Storage, matches: &ArgMatches) -> bool {
 fn subcmd_edit(store: &mut data::Storage, matches: &ArgMatches) -> bool {
     let p_dates = values_t!(matches, "dates", String).unwrap_or(vec![]);
 
-    let dates = p_dates.iter()
+    let dates = p_dates
+        .iter()
         .filter_map(|d| legacy_parser::parse_date(&d))
         .filter_map(|d| store.get_day(d.year() as u16, d.month() as u8, d.day() as u8))
         .map(|d| d.as_legacy())
@@ -182,12 +187,11 @@ fn subcmd_edit(store: &mut data::Storage, matches: &ArgMatches) -> bool {
     let mut s = dates.join("\n");
     if s.is_empty() {
         let today = Utc::today().naive_local();
-        if let Some(day) = store.get_day(
-                today.year() as u16,
-                today.month() as u8,
-                today.day() as u8) {
+        if let Some(day) =
+            store.get_day(today.year() as u16, today.month() as u8, today.day() as u8)
+        {
             s.push_str(&day.as_legacy())
-        } else  {
+        } else {
             s.push_str("# Lines starting with '#' will be ignored\n");
             s.push_str("# Default date is today!\n");
             s.push_str("# Date         Parts w/o and w/ factor (0.5)  Comment\n");
@@ -195,46 +199,50 @@ fn subcmd_edit(store: &mut data::Storage, matches: &ArgMatches) -> bool {
             let today = data::Day::new_today();
             s.push_str(&today.as_legacy())
         }
-
     }
 
     let mut file = tempfile::NamedTempFile::new().unwrap();
     let _ = write!(file, "{}\n", &s);
 
     match Command::new(env::var("EDITOR").unwrap_or("vim".to_string()))
-        .arg(file.path().to_str().unwrap()).status() {
+        .arg(file.path().to_str().unwrap())
+        .status()
+    {
         Err(e) => {
             println!("Error occured: '{:?}'", e);
-            return false
-        },
+            return false;
+        }
         Ok(x) => if !x.success() {
             println!("Editor exit was failure!");
-            return false
-        }
+            return false;
+        },
     }
 
-    let mut f = BufReader::new(file.try_clone().unwrap());
+    let mut f = BufReader::new(file);
     let _ = f.seek(std::io::SeekFrom::Start(0));
 
     for (i, line) in f.lines().enumerate() {
-        let line = match line { Ok(l) => l, Err(_) => continue };
+        let line = match line {
+            Ok(l) => l,
+            Err(_) => continue,
+        };
         if line.trim().is_empty() {
             println!("ignore empty line: {}", line);
-            continue
+            continue;
         }
 
         let day = match legacy_parser::parse_line(&line) {
             Ok(day) => day,
             Err(e) => {
                 println!("ignore {}: '{}' {:?}", i, line, e);
-                continue
+                continue;
             }
         };
 
-         store.add_day_force(day);
+        store.add_day_force(day);
     }
 
-    return true
+    return true;
 }
 
 fn subcmd_get(store: &data::Storage, matches: &ArgMatches) {
@@ -247,9 +255,9 @@ fn subcmd_set(store: &mut data::Storage, matches: &ArgMatches) -> bool {
     if let Some(ref matches) = matches.subcommand_matches("fee") {
         let fee = value_t!(matches, "value", f32).unwrap_or_else(|e| e.exit());
         store.set_fee(fee);
-        return true
+        return true;
     }
-    return false
+    return false;
 }
 
 fn subcmd_add(store: &mut data::Storage, matches: &ArgMatches) -> bool {
@@ -261,38 +269,39 @@ fn subcmd_add(store: &mut data::Storage, matches: &ArgMatches) -> bool {
             return false;
         }
         let start = start.unwrap();
-        let mut part = data::Part { start: start, stop: None, factor: None};
+        let mut part = data::Part {
+            start: start,
+            stop: None,
+            factor: None,
+        };
 
-        if let Ok(stop) = value_t!(matches, "stop",  String) {
-            part.stop =legacy_parser::parse_time(&stop); // { Some(stop);
+        if let Ok(stop) = value_t!(matches, "stop", String) {
+            part.stop = legacy_parser::parse_time(&stop); // { Some(stop);
         }
 
         let date = Utc::today().naive_local();
-        return store.add_part(date, part)
+        return store.add_part(date, part);
     }
 
     if let Some(ref matches) = matches.subcommand_matches("parse") {
         let data = values_t!(matches, "data", String).unwrap_or_else(|e| e.exit());
 
         match legacy_parser::parse_line(&data.join(" ")) {
-            Ok(day) => {
-                return store.add_day(day)
-            },
+            Ok(day) => return store.add_day(day),
             Err(_) => {
                 println!("Unable to parse data");
-                return false
+                return false;
             }
         }
-
     }
-    return false
+    return false;
 }
 
 fn subcmd_init(matches: &ArgMatches, pretty: bool) {
     let mut store = data::Storage::new();
 
-    let storage_file = value_t!(matches, "storage_file", String)
-        .unwrap_or("times.json".to_string());
+    let storage_file =
+        value_t!(matches, "storage_file", String).unwrap_or("times.json".to_string());
 
     if let Ok(leg_file) = value_t!(matches, "legacy_file", String) {
         if !store.import_legacy(&leg_file) {
@@ -309,19 +318,20 @@ fn subcmd_init(matches: &ArgMatches, pretty: bool) {
 }
 
 fn subcmd_show(store: &data::Storage, matches: &ArgMatches) {
-    let show_days  = matches.is_present("days");
+    let show_days = matches.is_present("days");
     let mut worked = matches.is_present("worked");
-    let breaks     = matches.is_present("breaks");
-    let verbose    = matches.is_present("verbose");
-    let parts      = matches.is_present("parts");
-    let today      = chrono::Utc::today();
+    let breaks = matches.is_present("breaks");
+    let verbose = matches.is_present("verbose");
+    let parts = matches.is_present("parts");
+    let today = chrono::Utc::today();
 
-    if !breaks { worked = true; }
+    if !breaks {
+        worked = true;
+    }
 
     if let Some(ref matches) = matches.subcommand_matches("year") {
-        let vals_num : Vec<u16> = if matches.is_present("years") {
-            values_t!(matches, "years", u16)
-                .unwrap_or_else(|e| e.exit())
+        let vals_num: Vec<u16> = if matches.is_present("years") {
+            values_t!(matches, "years", u16).unwrap_or_else(|e| e.exit())
         } else {
             let c = today.year() as u16;
             if verbose {
@@ -330,7 +340,7 @@ fn subcmd_show(store: &data::Storage, matches: &ArgMatches) {
             vec![c]
         };
 
-        let mut vals : Vec<&data::Year> = vec![];
+        let mut vals: Vec<&data::Year> = vec![];
         for y in vals_num {
             match store.get_year(y) {
                 Some(y) => vals.push(y),
@@ -346,20 +356,19 @@ fn subcmd_show(store: &data::Storage, matches: &ArgMatches) {
             .show_worked(worked)
             .show_breaks(breaks)
             .show_parts(parts)
-            .show_verbose(verbose).print();
+            .show_verbose(verbose)
+            .print();
     }
 
     if let Some(ref matches) = matches.subcommand_matches("month") {
         let y = if matches.is_present("year") {
-            value_t!(matches, "year", u16)
-                .unwrap_or_else(|e| e.exit())
+            value_t!(matches, "year", u16).unwrap_or_else(|e| e.exit())
         } else {
             today.year() as u16
         };
 
-        let vals_num : Vec<u8> = if matches.is_present("months") {
-            values_t!(matches, "months", u8)
-                .unwrap_or_else(|e| e.exit())
+        let vals_num: Vec<u8> = if matches.is_present("months") {
+            values_t!(matches, "months", u8).unwrap_or_else(|e| e.exit())
         } else {
             let c = today.month() as u8;
             if verbose {
@@ -368,7 +377,7 @@ fn subcmd_show(store: &data::Storage, matches: &ArgMatches) {
             vec![c]
         };
 
-        let mut vals : Vec<data::Month> = vec![];
+        let mut vals: Vec<data::Month> = vec![];
         for x in vals_num {
             match store.get_month(y, x) {
                 Some(x) => vals.push(x),
@@ -381,27 +390,25 @@ fn subcmd_show(store: &data::Storage, matches: &ArgMatches) {
             return;
         }
         let p = printer::Printer::with_months(vals)
-                        .set_fee(store.get_fee())
-                        .show_days(show_days)
-                        .show_worked(worked)
-                        .show_breaks(breaks)
-                        .show_parts(parts)
-                        .show_verbose(verbose);
+            .set_fee(store.get_fee())
+            .show_days(show_days)
+            .show_worked(worked)
+            .show_breaks(breaks)
+            .show_parts(parts)
+            .show_verbose(verbose);
         p.print();
-        return
+        return;
     }
 
     if let Some(ref matches) = matches.subcommand_matches("week") {
         let y = if matches.is_present("year") {
-            value_t!(matches, "year", u16)
-                .unwrap_or_else(|e| e.exit())
+            value_t!(matches, "year", u16).unwrap_or_else(|e| e.exit())
         } else {
             today.year() as u16
         };
 
-        let vals_num : Vec<u32> = if matches.is_present("weeks") {
-            values_t!(matches, "weeks", u32)
-                .unwrap_or_else(|e| e.exit())
+        let vals_num: Vec<u32> = if matches.is_present("weeks") {
+            values_t!(matches, "weeks", u32).unwrap_or_else(|e| e.exit())
         } else {
             let c = today.iso_week().week();
             if verbose {
@@ -410,7 +417,7 @@ fn subcmd_show(store: &data::Storage, matches: &ArgMatches) {
             vec![c]
         };
 
-        let mut vals : Vec<data::Week> = vec![];
+        let mut vals: Vec<data::Week> = vec![];
         for x in vals_num {
             match store.get_week(y, x) {
                 Some(x) => vals.push(x),
@@ -423,33 +430,30 @@ fn subcmd_show(store: &data::Storage, matches: &ArgMatches) {
             return;
         }
         let p = printer::Printer::with_weeks(vals)
-                        .set_fee(store.get_fee())
-                        .show_days(show_days)
-                        .show_worked(worked)
-                        .show_breaks(breaks)
-                        .show_parts(parts)
-                        .show_verbose(verbose);
+            .set_fee(store.get_fee())
+            .show_days(show_days)
+            .show_worked(worked)
+            .show_breaks(breaks)
+            .show_parts(parts)
+            .show_verbose(verbose);
         p.print();
     }
 
     if let Some(ref matches) = matches.subcommand_matches("day") {
         let y = if matches.is_present("year") {
-            value_t!(matches, "year", u16)
-                .unwrap_or_else(|e| e.exit())
+            value_t!(matches, "year", u16).unwrap_or_else(|e| e.exit())
         } else {
             today.year() as u16
         };
 
         let m = if matches.is_present("month") {
-            value_t!(matches, "month", u8)
-                .unwrap_or_else(|e| e.exit())
+            value_t!(matches, "month", u8).unwrap_or_else(|e| e.exit())
         } else {
             today.month() as u8
         };
 
-        let vals_num : Vec<u8> = if matches.is_present("days") {
-            values_t!(matches, "days", u8)
-                .unwrap_or_else(|e| e.exit())
+        let vals_num: Vec<u8> = if matches.is_present("days") {
+            values_t!(matches, "days", u8).unwrap_or_else(|e| e.exit())
         } else {
             let c = today.day() as u8;
             if verbose {
@@ -458,24 +462,22 @@ fn subcmd_show(store: &data::Storage, matches: &ArgMatches) {
             vec![c]
         };
 
-        let mut vals : Vec<&data::Day> = vec![];
+        let mut vals: Vec<&data::Day> = vec![];
         for x in vals_num {
             match store.get_day(y, m, x) {
                 Some(x) => vals.push(x),
                 None => {
-                    println!("Day {} not available for month {} in year {}!", x, m,  y);
+                    println!("Day {} not available for month {} in year {}!", x, m, y);
                 }
             }
         }
 
         let p = printer::Printer::with_days(vals)
-                        .show_worked(worked)
-                        .show_breaks(breaks)
-                        .show_parts(parts)
-                        .show_verbose(verbose);
+            .show_worked(worked)
+            .show_breaks(breaks)
+            .show_parts(parts)
+            .show_verbose(verbose);
         p.print();
-        return
-
+        return;
     }
 }
-

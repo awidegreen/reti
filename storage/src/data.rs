@@ -1,8 +1,8 @@
 use rustc_serialize::json;
-use std::io::BufReader;
-use std::io::prelude::*;
 use std::collections::BTreeMap;
 use std::fs::File;
+use std::io::prelude::*;
+use std::io::BufReader;
 
 use chrono::*;
 
@@ -10,14 +10,14 @@ use legacy_parser;
 
 #[derive(RustcDecodable, RustcEncodable, PartialEq, Debug)]
 pub struct Data {
-   pub years: Vec<Year>,
-   pub fee_per_hour: f32,
+    pub years: Vec<Year>,
+    pub fee_per_hour: f32,
 }
 
 #[derive(RustcDecodable, RustcEncodable, PartialEq, Debug)]
 pub struct Year {
-   pub year: u16,
-   pub days: Vec<Day>,
+    pub year: u16,
+    pub days: Vec<Day>,
 }
 
 #[derive(RustcDecodable, RustcEncodable, PartialEq, Debug)]
@@ -36,19 +36,22 @@ pub struct Part {
 
 impl Year {
     fn new(year: u16) -> Year {
-        Year { year: year, days: vec![] }
+        Year {
+            year: year,
+            days: vec![],
+        }
     }
 
     fn get_day(&self, m: u8, d: u8) -> Option<&Day> {
-        self.days.iter().find(|ref day|
-                                day.date.month() as u8 == m &&
-                                day.date.day()   as u8 == d)
+        self.days
+            .iter()
+            .find(|ref day| day.date.month() as u8 == m && day.date.day() as u8 == d)
     }
 
     fn get_day_mut(&mut self, m: u8, d: u8) -> Option<&mut Day> {
-        self.days.iter_mut().find(|ref mut day|
-                                    day.date.month() as u8 == m &&
-                                    day.date.day()   as u8 == d)
+        self.days
+            .iter_mut()
+            .find(|ref mut day| day.date.month() as u8 == m && day.date.day() as u8 == d)
     }
 
     fn add_day(&mut self, day: Day) -> bool {
@@ -66,9 +69,7 @@ impl Year {
 
         for ref d in self.days.iter() {
             let m = d.date.month();
-            let month = months.entry(m).or_insert_with(|| {
-                    Month::new(vec![])
-                });
+            let month = months.entry(m).or_insert_with(|| Month::new(vec![]));
             month.days.push(d);
         }
 
@@ -78,12 +79,20 @@ impl Year {
 
 impl Day {
     fn new(day: NaiveDate) -> Day {
-        Day { date: day, parts: vec![], comment: None }
+        Day {
+            date: day,
+            parts: vec![],
+            comment: None,
+        }
     }
 
     pub fn new_today() -> Day {
         let today = Utc::today().naive_local();
-        Day { date: today, parts: vec![], comment: None }
+        Day {
+            date: today,
+            parts: vec![],
+            comment: None,
+        }
     }
 
     pub fn worked(&self) -> Duration {
@@ -92,7 +101,7 @@ impl Day {
         for p in &self.parts {
             d = d + match p.worked() {
                 Some(w) => w,
-                None => continue
+                None => continue,
             };
             //if !p.stop.is_some() { continue }
             //d = d + (p.stop.unwrap() - p.start);
@@ -106,31 +115,33 @@ impl Day {
         for p in &self.parts {
             let factor = match p.factor {
                 Some(f) => f,
-                _ => 1.0
+                _ => 1.0,
             };
             result = result + match p.worked() {
-                Some(worked) => (worked.num_minutes() as f32/60.0) * (factor*fee),
-                _ => continue
+                Some(worked) => (worked.num_minutes() as f32 / 60.0) * (factor * fee),
+                _ => continue,
             };
         }
         result
     }
 
-    fn does_intersect(&self, part: &Part) -> bool{
+    fn does_intersect(&self, part: &Part) -> bool {
         for p in &self.parts {
-            if p.stop.is_none() || part.stop.is_none() { return true}
+            if p.stop.is_none() || part.stop.is_none() {
+                return true;
+            }
 
             if part.start > p.start {
                 if p.stop.unwrap() > part.start {
-                    return true
+                    return true;
                 }
             } else {
                 if part.stop.unwrap() > p.start {
-                    return true
+                    return true;
                 }
             }
         }
-        return false
+        return false;
     }
 
     fn clear_parts(&mut self) {
@@ -144,9 +155,11 @@ impl Day {
         }
 
         if self.date != other.date {
-            println!("Nothing to do, not the same day! Self: {} - other: {}",
-                     self.date, other.date);
-            return false
+            println!(
+                "Nothing to do, not the same day! Self: {} - other: {}",
+                self.date, other.date
+            );
+            return false;
         }
 
         let len = self.parts.len();
@@ -154,8 +167,10 @@ impl Day {
             if !self.does_intersect(&other_part) {
                 self.parts.push(other_part);
             } else {
-                println!("{:?} does clash with existing part in day: {}",
-                        &other_part, self.date);
+                println!(
+                    "{:?} does clash with existing part in day: {}",
+                    &other_part, self.date
+                );
             }
         }
         if self.comment.is_none() && other.comment.is_some() {
@@ -165,14 +180,19 @@ impl Day {
     }
 
     pub fn as_legacy(&self) -> String {
-        format!("{}   {}{}",
-                self.date.format("%Y-%m-%d").to_string(),
-                self.parts.iter().map(|x| x.as_legacy()).collect::<Vec<String>>().join("  "),
-                match self.comment {
-                    Some(ref c) => format!("   # {}", c),
-                    None => "".to_string()
-                }
-                )
+        format!(
+            "{}   {}{}",
+            self.date.format("%Y-%m-%d").to_string(),
+            self.parts
+                .iter()
+                .map(|x| x.as_legacy())
+                .collect::<Vec<String>>()
+                .join("  "),
+            match self.comment {
+                Some(ref c) => format!("   # {}", c),
+                None => "".to_string(),
+            }
+        )
     }
 }
 
@@ -216,7 +236,7 @@ pub struct Month<'a> {
 
 impl<'a> Month<'a> {
     fn new(days: Vec<&'a Day>) -> Month<'a> {
-        Month {  days: days }
+        Month { days: days }
     }
 
     pub fn worked(&self) -> Duration {
@@ -249,31 +269,34 @@ impl<'a> Month<'a> {
 
 impl Part {
     fn as_legacy(&self) -> String {
-        format!("{}-{}-{}",
-                self.start.format("%H:%M").to_string(),
-                match self.stop {
-                    Some(x) => x.format("%H:%M").to_string(),
-                    _ => "".to_string(),
-                },
-                self.factor.unwrap_or(1.0)
-               )
+        format!(
+            "{}-{}-{}",
+            self.start.format("%H:%M").to_string(),
+            match self.stop {
+                Some(x) => x.format("%H:%M").to_string(),
+                _ => "".to_string(),
+            },
+            self.factor.unwrap_or(1.0)
+        )
     }
 
     fn worked(&self) -> Option<Duration> {
-        if !self.stop.is_some() { return None }
+        if !self.stop.is_some() {
+            return None;
+        }
 
         Some(self.stop.unwrap().signed_duration_since(self.start))
     }
 }
 
 pub struct Storage {
-    data : Data,
+    data: Data,
 }
 
 impl Storage {
     pub fn new() -> Storage {
         Storage {
-            data : Data {
+            data: Data {
                 years: vec![],
                 fee_per_hour: 0.0,
             },
@@ -286,9 +309,7 @@ impl Storage {
         let _ = file.read_to_string(&mut s).unwrap();
 
         let data = try!(json::decode(&s));
-        Ok(Storage {
-            data: data
-        })
+        Ok(Storage { data: data })
     }
 
     pub fn set_fee(&mut self, fee: f32) {
@@ -302,7 +323,7 @@ impl Storage {
     pub fn import_legacy(&mut self, file: &str) -> bool {
         let f = match File::open(file) {
             Ok(x) => x,
-            _ => return false
+            _ => return false,
         };
         let f = BufReader::new(f);
 
@@ -311,25 +332,21 @@ impl Storage {
                 Ok(l) => l,
                 Err(e) => {
                     println!("Unable to process line: {}", e);
-                    continue
+                    continue;
                 }
             };
+            println!("line: {}", line);
             match legacy_parser::parse_line(&line) {
                 Ok(day) => {
                     self.add_day(day);
-                },
-                Err(e) => {
-                    match e {
-                        legacy_parser::ParserError::IgnoreLine =>
-                            println!("Line as been ignored"),
-                        legacy_parser::ParserError::EmptyLine =>
-                            println!("Line is empty"),
-                        legacy_parser::ParserError::DayParseError =>
-                            println!("DayParseError"),
-                    }
                 }
+                Err(e) => match e {
+                    legacy_parser::ParserError::IgnoreLine => println!("Line as been ignored"),
+                    legacy_parser::ParserError::EmptyLine => println!("Line is empty"),
+                    legacy_parser::ParserError::DayParseError => println!("DayParseError"),
+                },
             }
-        };
+        }
 
         true
     }
@@ -339,32 +356,36 @@ impl Storage {
 
         if readable {
             let encoded = json::as_pretty_json(&self.data);
-            return write!(f, "{}", encoded).is_ok()
+            return write!(f, "{}", encoded).is_ok();
         } else {
             let encoded = json::as_json(&self.data);
-            return write!(f, "{}", encoded).is_ok()
+            return write!(f, "{}", encoded).is_ok();
         }
     }
 
     pub fn get_week(&self, y: u16, w: u32) -> Option<Week> {
         if let Some(year) = self.get_year(y) {
-            let days : Vec<&Day> = year.days.iter()
+            let days: Vec<&Day> = year
+                .days
+                .iter()
                 .filter(|&x| x.date.iso_week().week() == w)
                 .collect();
             if days.len() > 0 {
-                return Some(Week::new(days))
+                return Some(Week::new(days));
             }
         }
         None
     }
 
-    pub fn get_month(&self, y: u16,  m: u8) -> Option<Month> {
+    pub fn get_month(&self, y: u16, m: u8) -> Option<Month> {
         if let Some(year) = self.get_year(y) {
-            let days : Vec<&Day> = year.days.iter()
+            let days: Vec<&Day> = year
+                .days
+                .iter()
                 .filter(|&x| x.date.month() == u32::from(m))
                 .collect();
             if days.len() > 0 {
-                return Some(Month::new(days))
+                return Some(Month::new(days));
             }
         }
         None
@@ -373,10 +394,10 @@ impl Storage {
     pub fn get_day(&self, y: u16, m: u8, d: u8) -> Option<&Day> {
         if let Some(month) = self.get_month(y, m) {
             if let Some(day) = month.days.iter().find(|&&x| x.date.day() == d as u32) {
-                return Some(day)
+                return Some(day);
             }
         }
-       None
+        None
     }
 
     /// Removes a day from the store based chrono::NaiveDate
@@ -390,13 +411,14 @@ impl Storage {
     }
 
     pub fn get_year(&self, y: u16) -> Option<&Year> {
-        self.data.years
-            .iter()
-            .find(|&x| x.year == y)
+        self.data.years.iter().find(|&x| x.year == y)
     }
 
-    fn get_year_mut(&mut self, y: u16) -> Option<&mut Year>{
-        self.data.years.iter_mut().find(|ref mut year| year.year == y)
+    fn get_year_mut(&mut self, y: u16) -> Option<&mut Year> {
+        self.data
+            .years
+            .iter_mut()
+            .find(|ref mut year| year.year == y)
     }
 
     pub fn add_part(&mut self, date: NaiveDate, part: Part) -> bool {
@@ -419,7 +441,7 @@ impl Storage {
             return year.add_day(new_day);
         }
         let mut year = Year::new(y);
-        return year.add_day(new_day)
+        return year.add_day(new_day);
     }
 
     pub fn add_day(&mut self, day: Day) -> bool {
@@ -429,9 +451,9 @@ impl Storage {
 
         if let Some(year) = self.get_year_mut(y) {
             if let Some(existing_day) = year.get_day_mut(m, d) {
-                return existing_day.merge_day(day)
+                return existing_day.merge_day(day);
             }
-            return year.add_day(day)
+            return year.add_day(day);
         }
         let mut year = Year::new(y);
         year.add_day(day);
@@ -446,16 +468,16 @@ impl Storage {
 
         if day.parts.len() == 0 {
             println!("No parts specified!");
-            return false
+            return false;
         }
 
         if let Some(year) = self.get_year_mut(y) {
             if let Some(existing_day) = year.get_day_mut(m, d) {
                 existing_day.clear_parts();
                 existing_day.comment = None;
-                return existing_day.merge_day(day)
+                return existing_day.merge_day(day);
             }
-            return year.add_day(day)
+            return year.add_day(day);
         }
         let mut year = Year::new(y);
         year.add_day(day)
@@ -580,4 +602,3 @@ fn test_year_get_day_mut() {
     assert_eq!(25, day.date.day());
     assert_eq!(5, day.date.month());
 }
-
