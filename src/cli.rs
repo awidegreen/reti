@@ -1,10 +1,11 @@
-use clap::{App, SubCommand, Arg, AppSettings};
+use clap::{App, AppSettings, Arg, SubCommand};
 
 pub fn build_cli() -> App<'static, 'static> {
     App::new("reti")
         .about("The cli time reporting tool")
         .author("Armin Widegreen <armin.widegreen@gmail.com>")
         .version(crate_version!())
+        .global_setting(AppSettings::InferSubcommands)
         .args_from_usage(
             "--save-pretty 'Save the json file read-able if a subcommand executes save.'
             -f, --file=[FILE] 'The file where the data is stored.'"

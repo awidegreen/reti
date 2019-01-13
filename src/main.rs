@@ -1,5 +1,6 @@
 extern crate chrono;
 //extern crate rustc_serialize;
+extern crate reti_printing;
 extern crate reti_storage;
 extern crate tempfile;
 
@@ -13,12 +14,12 @@ extern crate clap;
 extern crate failure;
 
 mod cli;
-mod printer;
 mod utils;
 
 use chrono::*;
 use clap::{ArgMatches, Shell};
 use failure::Error;
+use reti_printing::printer;
 use reti_storage::data;
 use reti_storage::legacy_parser;
 use std::env;
@@ -212,10 +213,12 @@ fn subcmd_edit(store: &mut data::Storage, matches: &ArgMatches) -> bool {
             println!("Error occured: '{:?}'", e);
             return false;
         }
-        Ok(x) => if !x.success() {
-            println!("Editor exit was failure!");
-            return false;
-        },
+        Ok(x) => {
+            if !x.success() {
+                println!("Editor exit was failure!");
+                return false;
+            }
+        }
     }
 
     let mut f = BufReader::new(file);
@@ -350,14 +353,14 @@ fn subcmd_show(store: &data::Storage, matches: &ArgMatches) {
             }
         }
 
-        printer::Printer::with_years(vals)
+        let p = printer::Printer::with_years(vals)
             .set_fee(store.get_fee())
             .show_days(show_days)
             .show_worked(worked)
             .show_breaks(breaks)
             .show_parts(parts)
-            .show_verbose(verbose)
-            .print();
+            .show_verbose(verbose);
+        print!("{}", p);
     }
 
     if let Some(ref matches) = matches.subcommand_matches("month") {
@@ -396,7 +399,7 @@ fn subcmd_show(store: &data::Storage, matches: &ArgMatches) {
             .show_breaks(breaks)
             .show_parts(parts)
             .show_verbose(verbose);
-        p.print();
+        print!("{}", p);
         return;
     }
 
@@ -436,7 +439,7 @@ fn subcmd_show(store: &data::Storage, matches: &ArgMatches) {
             .show_breaks(breaks)
             .show_parts(parts)
             .show_verbose(verbose);
-        p.print();
+        print!("{}", p);
     }
 
     if let Some(ref matches) = matches.subcommand_matches("day") {
@@ -477,7 +480,7 @@ fn subcmd_show(store: &data::Storage, matches: &ArgMatches) {
             .show_breaks(breaks)
             .show_parts(parts)
             .show_verbose(verbose);
-        p.print();
+        print!("{}", p);
         return;
     }
 }

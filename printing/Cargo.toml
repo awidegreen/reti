@@ -1,0 +1,8 @@
+[package]
+name = "reti-printing"
+version = "0.1.0"
+authors = ["Armin Widegreen <armin.widegreen@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+reti-storage = { path = "../storage" }

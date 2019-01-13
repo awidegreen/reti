@@ -117,10 +117,11 @@ impl Day {
                 Some(f) => f,
                 _ => 1.0,
             };
-            result = result + match p.worked() {
-                Some(worked) => (worked.num_minutes() as f32 / 60.0) * (factor * fee),
-                _ => continue,
-            };
+            result = result
+                + match p.worked() {
+                    Some(worked) => (worked.num_minutes() as f32 / 60.0) * (factor * fee),
+                    _ => continue,
+                };
         }
         result
     }
@@ -301,6 +302,10 @@ impl Storage {
                 fee_per_hour: 0.0,
             },
         }
+    }
+
+    pub fn years(&self) -> &Vec<Year> {
+        &self.data.years
     }
 
     pub fn from_file(file: &str) -> Result<Storage, json::DecoderError> {
