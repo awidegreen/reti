@@ -129,7 +129,7 @@ $ reti init 2016..json examples/test_leg_format.txt
 # show the whole year
 $ reti -f 2016.json show -p -d year 2016
 
-# set some abritrary fee per hour
+# set some arbitrary fee per hour
 $ reti -f 2016.json set fee 250
 # show year should show some proper calculation now
 $ reti -f 2016.json show -p -d year 2016
