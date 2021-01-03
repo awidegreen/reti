@@ -1,4 +1,6 @@
+use chrono::Duration;
 use reti_storage::data;
+use std::collections::HashMap;
 use std::fmt;
 
 pub struct Printer<'a> {
@@ -233,6 +235,25 @@ impl<'a> Printer<'a> {
         }
 
         if self.verbose {
+            let mut times_fac: HashMap<usize, Duration> = HashMap::new();
+            for d in &month.days {
+                for ref p in &d.parts {
+                    let f = (p.factor.unwrap_or(1.0) * 10.0) as usize;
+                    if let Some(worked) = p.worked() {
+                        if let Some(x) = times_fac.get_mut(&f) {
+                            *x = *x + worked;
+                        } else {
+                            times_fac.insert(f, worked);
+                        }
+                    }
+                }
+            }
+
+            for (k, v) in &times_fac {
+                let w = v.num_minutes() as f64 / 60.0;
+                writeln!(f, "Worked factor {:.1}: {:.2}h", (*k as f32 / 10.0), w)?
+            }
+
             writeln!(f, "total earned: {:.2}", month.earned(self.fee))?
         }
 

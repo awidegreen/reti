@@ -281,7 +281,7 @@ impl Part {
         )
     }
 
-    fn worked(&self) -> Option<Duration> {
+    pub fn worked(&self) -> Option<Duration> {
         if !self.stop.is_some() {
             return None;
         }
