@@ -20,7 +20,7 @@ pub struct Printer<'a> {
 impl<'a> Printer<'a> {
     pub fn with_years(years: Vec<&'a data::Year>) -> Printer<'a> {
         Printer {
-            years: years,
+            years,
             months: vec![],
             weeks: vec![],
             days: vec![],
@@ -36,7 +36,7 @@ impl<'a> Printer<'a> {
     pub fn with_months(months: Vec<data::Month<'a>>) -> Printer<'a> {
         Printer {
             years: vec![],
-            months: months,
+            months,
             weeks: vec![],
             days: vec![],
             worked: false,
@@ -52,7 +52,7 @@ impl<'a> Printer<'a> {
         Printer {
             years: vec![],
             months: vec![],
-            weeks: weeks,
+            weeks,
             days: vec![],
             worked: false,
             breaks: false,
@@ -68,7 +68,7 @@ impl<'a> Printer<'a> {
             years: vec![],
             months: vec![],
             weeks: vec![],
-            days: days,
+            days,
             worked: false,
             breaks: false,
             verbose: false,
@@ -135,7 +135,7 @@ impl<'a> Printer<'a> {
         }
         if self.breaks {
             //let b = 0;
-            write!(f, " breaks: {}h", "TODO!")?;
+            write!(f, " TODO!!! breaks: FOOBARh")?;
         }
         if self.parts {
             let s = &day
@@ -161,11 +161,11 @@ impl<'a> Printer<'a> {
         if let Some(ref c) = day.comment {
             writeln!(f, "  ({})", &c)
         } else {
-            writeln!(f, "")
+            writeln!(f)
         }
     }
 
-    fn fmt_days(&self, f: &mut fmt::Formatter, days: &Vec<&'a data::Day>) -> fmt::Result {
+    fn fmt_days(&self, f: &mut fmt::Formatter, days: &[&'a data::Day]) -> fmt::Result {
         for d in days {
             self.fmt_day(f, d)?
         }
@@ -203,7 +203,7 @@ impl<'a> Printer<'a> {
         Ok(())
     }
 
-    fn fmt_weeks(&self, f: &mut fmt::Formatter, weeks: &Vec<data::Week>) -> fmt::Result {
+    fn fmt_weeks(&self, f: &mut fmt::Formatter, weeks: &[data::Week]) -> fmt::Result {
         for week in weeks {
             self.fmt_week(f, week)?;
         }
@@ -260,7 +260,7 @@ impl<'a> Printer<'a> {
         Ok(())
     }
 
-    fn fmt_months(&self, f: &mut fmt::Formatter, months: &Vec<data::Month>) -> fmt::Result {
+    fn fmt_months(&self, f: &mut fmt::Formatter, months: &[data::Month]) -> fmt::Result {
         for month in months {
             self.fmt_month(f, month)?;
         }
@@ -289,7 +289,7 @@ impl<'a> Printer<'a> {
         Ok(())
     }
 
-    fn fmt_years(&self, f: &mut fmt::Formatter, years: &Vec<&'a data::Year>) -> fmt::Result {
+    fn fmt_years(&self, f: &mut fmt::Formatter, years: &[&'a data::Year]) -> fmt::Result {
         for year in years {
             self.fmt_year(f, year)?;
         }
@@ -300,16 +300,16 @@ impl<'a> Printer<'a> {
 impl<'a> fmt::Display for Printer<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "Assumed fee per hour: {:.2}", self.fee)?;
-        if self.years.len() > 0 {
+        if !self.years.is_empty() {
             self.fmt_years(f, &self.years)?;
         }
-        if self.months.len() > 0 {
+        if !self.months.is_empty() {
             self.fmt_months(f, &self.months)?;
         }
-        if self.weeks.len() > 0 {
+        if !self.weeks.is_empty() {
             self.fmt_weeks(f, &self.weeks)?;
         }
-        if self.days.len() > 0 {
+        if !self.days.is_empty() {
             self.fmt_days(f, &self.days)?;
         }
         Ok(())

@@ -1,14 +1,13 @@
 use std::io;
 use std::io::prelude::*;
 
-
 #[derive(Debug)]
 pub enum YesNoAnswer {
     YES,
     NO,
 }
 
-pub fn  yes_no(message: &str, default: YesNoAnswer) -> YesNoAnswer {
+pub fn yes_no(message: &str, default: YesNoAnswer) -> YesNoAnswer {
     let mut stdout = io::stdout();
 
     print!("{} ", message);
@@ -19,8 +18,7 @@ pub fn  yes_no(message: &str, default: YesNoAnswer) -> YesNoAnswer {
 
     match input.trim() {
         "Yes" | "yes" | "Y" | "y" | "YeS" | "YES" => YesNoAnswer::YES,
-        "No" | "NO" | "n" | "N"                   => YesNoAnswer::NO,
-        _                                         => default,
+        "No" | "NO" | "n" | "N" => YesNoAnswer::NO,
+        _ => default,
     }
 }
-

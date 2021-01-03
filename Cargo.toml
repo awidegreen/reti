@@ -2,6 +2,7 @@
 name = "reti"
 version = "0.1.0"
 authors = ["Armin Widegreen <armin.widegreen@gmail.com>"]
+edition = "2018"
 
 [[bin]]
 path = "src/main.rs"

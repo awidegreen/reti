@@ -6,9 +6,9 @@ use std::io::BufReader;
 
 use chrono::*;
 
-use legacy_parser;
+use crate::legacy_parser;
 
-#[derive(RustcDecodable, RustcEncodable, PartialEq, Debug)]
+#[derive(RustcDecodable, RustcEncodable, PartialEq, Debug, Default)]
 pub struct Data {
     pub years: Vec<Year>,
     pub fee_per_hour: f32,
@@ -36,10 +36,7 @@ pub struct Part {
 
 impl Year {
     fn new(year: u16) -> Year {
-        Year {
-            year: year,
-            days: vec![],
-        }
+        Year { year, days: vec![] }
     }
 
     fn get_day(&self, m: u8, d: u8) -> Option<&Day> {
@@ -117,11 +114,10 @@ impl Day {
                 Some(f) => f,
                 _ => 1.0,
             };
-            result = result
-                + match p.worked() {
-                    Some(worked) => (worked.num_minutes() as f32 / 60.0) * (factor * fee),
-                    _ => continue,
-                };
+            result += match p.worked() {
+                Some(worked) => (worked.num_minutes() as f32 / 60.0) * (factor * fee),
+                _ => continue,
+            };
         }
         result
     }
@@ -136,13 +132,11 @@ impl Day {
                 if p.stop.unwrap() > part.start {
                     return true;
                 }
-            } else {
-                if part.stop.unwrap() > p.start {
-                    return true;
-                }
+            } else if part.stop.unwrap() > p.start {
+                return true;
             }
         }
-        return false;
+        false
     }
 
     fn clear_parts(&mut self) {
@@ -150,7 +144,7 @@ impl Day {
     }
 
     fn merge_day(&mut self, other: Day) -> bool {
-        if other.parts.len() == 0 {
+        if other.parts.is_empty() {
             println!("No parts to merge!");
             return false;
         }
@@ -203,13 +197,13 @@ pub struct Week<'a> {
 
 impl<'a> Week<'a> {
     fn new(days: Vec<&'a Day>) -> Week<'a> {
-        Week { days: days }
+        Week { days }
     }
 
     pub fn earned(&self, fee: f32) -> f32 {
         let mut r = 0.0_f32;
         for day in &self.days {
-            r = r + day.earned(fee);
+            r += day.earned(fee);
         }
         r
     }
@@ -224,7 +218,7 @@ impl<'a> Week<'a> {
     }
 
     pub fn as_num(&self) -> String {
-        assert!(self.days.len() > 0);
+        assert!(!self.days.is_empty());
         self.days[0].date.format("%W").to_string()
     }
 }
@@ -237,7 +231,7 @@ pub struct Month<'a> {
 
 impl<'a> Month<'a> {
     fn new(days: Vec<&'a Day>) -> Month<'a> {
-        Month { days: days }
+        Month { days }
     }
 
     pub fn worked(&self) -> Duration {
@@ -252,18 +246,18 @@ impl<'a> Month<'a> {
     pub fn earned(&self, fee: f32) -> f32 {
         let mut r = 0.0_f32;
         for day in &self.days {
-            r = r + day.earned(fee);
+            r += day.earned(fee);
         }
         r
     }
 
     pub fn as_num(&self) -> String {
-        assert!(self.days.len() > 0);
+        assert!(!self.days.is_empty());
         self.days[0].date.format("%m").to_string()
     }
 
     pub fn as_name(&self) -> String {
-        assert!(self.days.len() > 0);
+        assert!(!self.days.is_empty());
         self.days[0].date.format("%B").to_string()
     }
 }
@@ -282,28 +276,17 @@ impl Part {
     }
 
     pub fn worked(&self) -> Option<Duration> {
-        if !self.stop.is_some() {
-            return None;
-        }
-
+        self.stop?;
         Some(self.stop.unwrap().signed_duration_since(self.start))
     }
 }
 
+#[derive(Default)]
 pub struct Storage {
     data: Data,
 }
 
 impl Storage {
-    pub fn new() -> Storage {
-        Storage {
-            data: Data {
-                years: vec![],
-                fee_per_hour: 0.0,
-            },
-        }
-    }
-
     pub fn years(&self) -> &Vec<Year> {
         &self.data.years
     }
@@ -313,8 +296,8 @@ impl Storage {
         let mut s = String::new();
         let _ = file.read_to_string(&mut s).unwrap();
 
-        let data = try!(json::decode(&s));
-        Ok(Storage { data: data })
+        let data = json::decode(&s)?;
+        Ok(Storage { data })
     }
 
     pub fn set_fee(&mut self, fee: f32) {
@@ -361,10 +344,10 @@ impl Storage {
 
         if readable {
             let encoded = json::as_pretty_json(&self.data);
-            return write!(f, "{}", encoded).is_ok();
+            write!(f, "{}", encoded).is_ok()
         } else {
             let encoded = json::as_json(&self.data);
-            return write!(f, "{}", encoded).is_ok();
+            write!(f, "{}", encoded).is_ok()
         }
     }
 
@@ -375,7 +358,7 @@ impl Storage {
                 .iter()
                 .filter(|&x| x.date.iso_week().week() == w)
                 .collect();
-            if days.len() > 0 {
+            if !days.is_empty() {
                 return Some(Week::new(days));
             }
         }
@@ -389,7 +372,7 @@ impl Storage {
                 .iter()
                 .filter(|&x| x.date.month() == u32::from(m))
                 .collect();
-            if days.len() > 0 {
+            if !days.is_empty() {
                 return Some(Month::new(days));
             }
         }
@@ -407,7 +390,7 @@ impl Storage {
 
     /// Removes a day from the store based chrono::NaiveDate
     pub fn remove_day_nd(&mut self, date: NaiveDate) -> bool {
-        if let Some(mut year) = self.get_year_mut(date.year() as u16) {
+        if let Some(year) = self.get_year_mut(date.year() as u16) {
             let size = year.days.len();
             year.days.retain(|x| x.date != date);
             return size > year.days.len();
@@ -446,7 +429,7 @@ impl Storage {
             return year.add_day(new_day);
         }
         let mut year = Year::new(y);
-        return year.add_day(new_day);
+        year.add_day(new_day)
     }
 
     pub fn add_day(&mut self, day: Day) -> bool {
@@ -471,7 +454,7 @@ impl Storage {
         let m = day.date.month() as u8;
         let d = day.date.day() as u8;
 
-        if day.parts.len() == 0 {
+        if day.parts.is_empty() {
             println!("No parts specified!");
             return false;
         }

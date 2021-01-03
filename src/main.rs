@@ -95,7 +95,7 @@ fn main() {
     }
 
     if let Some(ref matches) = args.subcommand_matches("get") {
-        subcmd_get(&mut store, matches)
+        subcmd_get(&store, matches)
     }
 
     if let Some(ref matches) = args.subcommand_matches("set") {
@@ -130,10 +130,8 @@ fn main() {
         }
     }
 
-    if do_write {
-        if !store.save(&storage_file, pretty_json) {
-            println!("Unable to write file: {}", &storage_file);
-        }
+    if do_write && !store.save(&storage_file, pretty_json) {
+        println!("Unable to write file: {}", &storage_file);
     }
 }
 
@@ -146,7 +144,7 @@ fn subcmd_import(store: &mut data::Storage, matches: &ArgMatches) {
 }
 
 fn subcmd_remove(store: &mut data::Storage, matches: &ArgMatches) -> bool {
-    let dates = values_t!(matches, "dates", String).unwrap_or(vec![]);
+    let dates = values_t!(matches, "dates", String).unwrap_or_else(|_| vec![]);
 
     let force = matches.is_present("force");
     let dates = dates.iter().filter_map(|d| legacy_parser::parse_date(&d));
@@ -176,7 +174,7 @@ fn subcmd_remove(store: &mut data::Storage, matches: &ArgMatches) -> bool {
 }
 
 fn subcmd_edit(store: &mut data::Storage, matches: &ArgMatches) -> bool {
-    let p_dates = values_t!(matches, "dates", String).unwrap_or(vec![]);
+    let p_dates = values_t!(matches, "dates", String).unwrap_or_else(|_| vec![]);
 
     let dates = p_dates
         .iter()
@@ -203,9 +201,9 @@ fn subcmd_edit(store: &mut data::Storage, matches: &ArgMatches) -> bool {
     }
 
     let mut file = tempfile::NamedTempFile::new().unwrap();
-    let _ = write!(file, "{}\n", &s);
+    let _ = writeln!(file, "{}", &s);
 
-    match Command::new(env::var("EDITOR").unwrap_or("vim".to_string()))
+    match Command::new(env::var("EDITOR").unwrap_or_else(|_| "vim".to_string()))
         .arg(file.path().to_str().unwrap())
         .status()
     {
@@ -245,7 +243,7 @@ fn subcmd_edit(store: &mut data::Storage, matches: &ArgMatches) -> bool {
         store.add_day_force(day);
     }
 
-    return true;
+    true
 }
 
 fn subcmd_get(store: &data::Storage, matches: &ArgMatches) {
@@ -260,7 +258,7 @@ fn subcmd_set(store: &mut data::Storage, matches: &ArgMatches) -> bool {
         store.set_fee(fee);
         return true;
     }
-    return false;
+    false
 }
 
 fn subcmd_add(store: &mut data::Storage, matches: &ArgMatches) -> bool {
@@ -273,7 +271,7 @@ fn subcmd_add(store: &mut data::Storage, matches: &ArgMatches) -> bool {
         }
         let start = start.unwrap();
         let mut part = data::Part {
-            start: start,
+            start,
             stop: None,
             factor: None,
         };
@@ -297,14 +295,14 @@ fn subcmd_add(store: &mut data::Storage, matches: &ArgMatches) -> bool {
             }
         }
     }
-    return false;
+    false
 }
 
 fn subcmd_init(matches: &ArgMatches, pretty: bool) {
-    let mut store = data::Storage::new();
+    let mut store = data::Storage::default();
 
     let storage_file =
-        value_t!(matches, "storage_file", String).unwrap_or("times.json".to_string());
+        value_t!(matches, "storage_file", String).unwrap_or_else(|_| "times.json".to_string());
 
     if let Ok(leg_file) = value_t!(matches, "legacy_file", String) {
         if !store.import_legacy(&leg_file) {
@@ -389,7 +387,7 @@ fn subcmd_show(store: &data::Storage, matches: &ArgMatches) {
                 }
             }
         }
-        if vals.len() == 0 {
+        if vals.is_empty() {
             return;
         }
         let p = printer::Printer::with_months(vals)
@@ -429,7 +427,7 @@ fn subcmd_show(store: &data::Storage, matches: &ArgMatches) {
                 }
             }
         }
-        if vals.len() == 0 {
+        if vals.is_empty() {
             return;
         }
         let p = printer::Printer::with_weeks(vals)
