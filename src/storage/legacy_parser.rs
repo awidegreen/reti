@@ -1,5 +1,5 @@
 use chrono::{NaiveDate, NaiveTime};
-use nom::{digit, multispace, not_line_ending, IResult};
+use nom::*;
 
 use crate::data::{Day, Part};
 
@@ -151,8 +151,8 @@ pub fn parse_part(t: &str) -> Option<Part> {
 
 #[cfg(test)]
 mod test {
+    use crate::data::{Day, Part};
     use chrono::{NaiveDate, NaiveTime};
-    use data::{Day, Part};
     use nom::IResult;
 
     #[test]

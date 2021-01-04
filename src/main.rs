@@ -1,12 +1,3 @@
-extern crate chrono;
-//extern crate rustc_serialize;
-extern crate reti_printing;
-extern crate reti_storage;
-extern crate tempfile;
-
-extern crate config;
-extern crate xdg;
-
 #[macro_use]
 extern crate clap;
 
@@ -14,14 +5,16 @@ extern crate clap;
 extern crate failure;
 
 mod cli;
+mod printing;
+mod storage;
 mod utils;
 
+use crate::printing::printer;
+use crate::storage::data;
+use crate::storage::legacy_parser;
 use chrono::*;
 use clap::{ArgMatches, Shell};
 use failure::Error;
-use reti_printing::printer;
-use reti_storage::data;
-use reti_storage::legacy_parser;
 use std::env;
 use std::io;
 use std::io::prelude::*;
@@ -282,6 +275,27 @@ fn subcmd_add(store: &mut data::Storage, matches: &ArgMatches) -> bool {
 
         let date = Utc::today().naive_local();
         return store.add_part(date, part);
+    }
+
+    if let Some(ref matches) = matches.subcommand_matches("parts") {
+        let mut parts = vec![];
+        let parts_s = values_t!(matches, "parts", String).unwrap_or_else(|e| e.exit());
+        for part in parts_s {
+            match legacy_parser::parse_part(&part) {
+                Some(part) => parts.push(part),
+                None => {
+                    println!("Unable to parse part: {}", part);
+                    return false;
+                }
+            }
+        }
+        let date = Utc::today().naive_local();
+        for part in parts {
+            if !store.add_part(date, part) {
+                return false;
+            }
+        }
+        return true;
     }
 
     if let Some(ref matches) = matches.subcommand_matches("parse") {

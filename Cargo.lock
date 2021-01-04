@@ -509,28 +509,11 @@ dependencies = [
  "config",
  "curl",
  "failure",
- "reti-printing",
- "reti-storage",
+ "nom 2.2.1",
  "rust-ini 0.16.0",
+ "rustc-serialize",
  "tempfile",
  "xdg",
-]
-
-[[package]]
-name = "reti-printing"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "reti-storage",
-]
-
-[[package]]
-name = "reti-storage"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "nom 2.2.1",
- "rustc-serialize",
 ]
 
 [[package]]

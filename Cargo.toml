@@ -11,13 +11,16 @@ name = "reti"
 [dependencies]
 tempfile = "*"
 rust-ini = "*"
-reti-storage = { path = "storage" }
-reti-printing = { path = "printing" }
-chrono = "*"
 curl = "*"
 config = "*"
 xdg = "*"
 failure = "*"
+rustc-serialize = "*"
+nom = "2.*"
 
 [dependencies.clap]
 version = "2.*"
+
+[dependencies.chrono]
+version = "*"
+features = ["rustc-serialize"]
