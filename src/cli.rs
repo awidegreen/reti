@@ -48,6 +48,11 @@ pub fn build_cli() -> App<'static, 'static> {
                                     "<start> 'The format is: HH:MM (default: now), use _ if only stop shall be recorded!'
                                     [stop] 'Format: HH:MM, optional hence only start will be recorded'"
                                     ))
+                    .subcommand(SubCommand::with_name("parts")
+                                .about("Add a parts of the day.")
+                                .args_from_usage(
+                                    "<parts>... 'The format is: HH:MM-HH:MM[-factor] (START-STOP[-FACTOR]).'"
+                                    ))
                     .subcommand(SubCommand::with_name("parse")
                                 .about("Lets you add entries based on free text, either as parameter or via stdin.")
                                 .args_from_usage(

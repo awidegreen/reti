@@ -27,7 +27,7 @@ pub struct Day {
     pub comment: Option<String>,
 }
 
-#[derive(RustcDecodable, RustcEncodable, PartialEq, Debug)]
+#[derive(RustcDecodable, RustcEncodable, PartialEq, Debug, Clone)]
 pub struct Part {
     pub start: NaiveTime,
     pub stop: Option<NaiveTime>,
@@ -287,10 +287,6 @@ pub struct Storage {
 }
 
 impl Storage {
-    pub fn years(&self) -> &Vec<Year> {
-        &self.data.years
-    }
-
     pub fn from_file(file: &str) -> Result<Storage, json::DecoderError> {
         let mut file = File::open(file).unwrap();
         let mut s = String::new();
@@ -431,7 +427,7 @@ impl Storage {
         if let Some(day) = year.get_day_mut(m, d) {
             return day.merge_day(new_day);
         }
-        return year.add_day(new_day);
+        year.add_day(new_day)
     }
 
     pub fn add_day(&mut self, day: Day) -> bool {
