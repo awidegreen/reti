@@ -390,23 +390,28 @@ impl Storage {
 
     /// Removes a day from the store based chrono::NaiveDate
     pub fn remove_day_nd(&mut self, date: NaiveDate) -> bool {
-        if let Some(year) = self.get_year_mut(date.year() as u16) {
-            let size = year.days.len();
-            year.days.retain(|x| x.date != date);
-            return size > year.days.len();
-        }
-        false
+        let year = self.get_year_mut(date.year() as u16);
+        let size = year.days.len();
+        year.days.retain(|x| x.date != date);
+        size > year.days.len()
     }
 
     pub fn get_year(&self, y: u16) -> Option<&Year> {
         self.data.years.iter().find(|&x| x.year == y)
     }
 
-    fn get_year_mut(&mut self, y: u16) -> Option<&mut Year> {
+    fn get_year_mut(&mut self, y: u16) -> &mut Year {
+        let find = |y: u16| self.data.years.iter().find(|&year| year.year == y);
+        if find(y).is_none() {
+            let year = Year::new(y);
+            self.data.years.push(year);
+        }
+
         self.data
             .years
             .iter_mut()
             .find(|ref mut year| year.year == y)
+            .unwrap()
     }
 
     pub fn add_part(&mut self, date: NaiveDate, part: Part) -> bool {
@@ -422,14 +427,11 @@ impl Storage {
 
         new_day.parts.push(part);
 
-        if let Some(year) = self.get_year_mut(y) {
-            if let Some(day) = year.get_day_mut(m, d) {
-                return day.merge_day(new_day);
-            }
-            return year.add_day(new_day);
+        let year = self.get_year_mut(y);
+        if let Some(day) = year.get_day_mut(m, d) {
+            return day.merge_day(new_day);
         }
-        let mut year = Year::new(y);
-        year.add_day(new_day)
+        return year.add_day(new_day);
     }
 
     pub fn add_day(&mut self, day: Day) -> bool {
@@ -437,16 +439,11 @@ impl Storage {
         let m = day.date.month() as u8;
         let d = day.date.day() as u8;
 
-        if let Some(year) = self.get_year_mut(y) {
-            if let Some(existing_day) = year.get_day_mut(m, d) {
-                return existing_day.merge_day(day);
-            }
-            return year.add_day(day);
+        let year = self.get_year_mut(y);
+        if let Some(existing_day) = year.get_day_mut(m, d) {
+            return existing_day.merge_day(day);
         }
-        let mut year = Year::new(y);
-        year.add_day(day);
-        self.data.years.push(year);
-        true
+        year.add_day(day)
     }
 
     pub fn add_day_force(&mut self, day: Day) -> bool {
@@ -459,15 +456,12 @@ impl Storage {
             return false;
         }
 
-        if let Some(year) = self.get_year_mut(y) {
-            if let Some(existing_day) = year.get_day_mut(m, d) {
-                existing_day.clear_parts();
-                existing_day.comment = None;
-                return existing_day.merge_day(day);
-            }
-            return year.add_day(day);
+        let year = self.get_year_mut(y);
+        if let Some(existing_day) = year.get_day_mut(m, d) {
+            existing_day.clear_parts();
+            existing_day.comment = None;
+            return existing_day.merge_day(day);
         }
-        let mut year = Year::new(y);
         year.add_day(day)
     }
 }
