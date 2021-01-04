@@ -9,18 +9,17 @@ path = "src/main.rs"
 name = "reti"
 
 [dependencies]
-tempfile = "*"
-rust-ini = "*"
-curl = "*"
-config = "*"
-xdg = "*"
-failure = "*"
-rustc-serialize = "*"
+tempfile = "3.1"
+rust-ini = "0.16"
+config = "0.10"
+xdg = "2.2"
+failure = "0.1"
+rustc-serialize = "0.3"
 nom = "2.*"
 
 [dependencies.clap]
 version = "2.*"
 
 [dependencies.chrono]
-version = "*"
+version = "0.4"
 features = ["rustc-serialize"]
