@@ -1,5 +1,9 @@
 # reti - Time recording in Rust
 
+[![License](https://img.shields.io/badge/license-BSD--3--Clause-blue)](LICENSE)
+[![Build status](https://github.com/awidegreen/reti/workflows/Rust/badge.svg)](https://github.com/awidegreen/reti/actions)
+[![Crates.io](https://img.shields.io/crates/v/reti.svg)](https://crates.io/crates/reti)
+
 `reti` allows you do **re**cord **ti**me via the CLI by tracking periods of time
 during a day. All data is stored in a json file (*store*).
 
@@ -32,6 +36,34 @@ data in another format.
 However, since the format specified above is pretty straight forward to
 understand and edit in *your-favorite-editor*, `reti` continues to use the format
 when editing entries.
+
+## Installation
+
+### Via Cargo
+
+Install `reti` from crates.io.
+
+```sh
+> cargo install reti
+```
+
+### Building from source
+
+Clone the repository
+
+```sh
+> git clone https://github.com/awidegreen/reti.git
+> cd reti
+```
+Build and install via `cargo`. Note that you need a fairly recent rust version.
+
+```sh
+> cargo install --path .
+```
+
+### Binary release
+
+Fetch the latest release from [Github release page](https://github.com/awidegreen/reti/releases).
 
 ## Features
 
@@ -167,4 +199,4 @@ storage-file = "/home/awidegreen/reti_2018.json"
 
 Copyright (C) 2018 by Armin Widegreen
 
-This is free software, licensed under The [ISC License](LICENSE).
+This is free software, licensed under The [BSD-3-Clause](LICENSE).

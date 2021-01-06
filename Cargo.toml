@@ -3,6 +3,11 @@ name = "reti"
 version = "0.2.0"
 authors = ["Armin Widegreen <armin.widegreen@gmail.com>"]
 edition = "2018"
+description = "reti allows you do record time via the CLI by tracking periods of time during a day. All data is stored in a json file (store)."
+license = "BSD-3-Clause"
+documentation = "https://github.com/awidegreen/reti"
+homepage = "https://github.com/awidegreen/reti"
+repository = "https://github.com/awidegreen/reti"
 
 [[bin]]
 path = "src/main.rs"
